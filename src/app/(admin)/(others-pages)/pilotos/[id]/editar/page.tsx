@@ -1,190 +1,136 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function EditarPilotoPage() {
-  const { id } = useParams();
   const router = useRouter();
+  const { id } = useParams<{ id: string }>();
 
+  const [name, setName] = useState('');
+  const [number, setNumber] = useState<number | ''>('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [role, setRole] = useState('');
+  const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(true);
-  const [pilotData, setPilotData] = useState<any>(null);
-  const [teams, setTeams] = useState<any[]>([]);
-  const [seasons, setSeasons] = useState<any[]>([]);
-  const [leagues, setLeagues] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchPilot = async () => {
       const { data, error } = await supabase
-        .from('pilot_team_season')
-        .select(`
-          id,
-          pilot:pilot_id ( id, name, number, avatar_url ),
-          team:team_id ( id, name ),
-          season:season_id ( id, name ),
-          league:league_id ( id, name, season_id )
-        `)
+        .from('pilot')
+        .select('*')
         .eq('id', id)
         .single();
 
-      if (!data || error) {
-        console.error('Error al cargar datos del piloto', error);
-        setLoading(false);
-        return;
+      if (error) {
+        setError('Error al cargar los datos del piloto.');
+        console.error(error);
+      } else if (data) {
+        setName(data.name || '');
+        setNumber(data.number || '');
+        setAvatarUrl(data.avatar_url || '');
+        setRole(data.role || '');
+        setUserId(data.user_id || '');
       }
 
-      setPilotData({
-        pilot_id: data.pilot.id,
-        name: data.pilot.name,
-        number: data.pilot.number,
-        avatar_url: data.pilot.avatar_url,
-        team_id: data.team.id,
-        season_id: data.season.id,
-        league_id: data.league.id,
-      });
-
-      const [teamRes, seasonRes, leagueRes] = await Promise.all([
-        supabase.from('team').select('id, name'),
-        supabase.from('season').select('id, name'),
-        supabase.from('league').select('id, name, season_id'),
-      ]);
-
-      setTeams(teamRes.data || []);
-      setSeasons(seasonRes.data || []);
-      setLeagues(leagueRes.data || []);
       setLoading(false);
     };
 
-    fetchData();
+    if (id) fetchPilot();
   }, [id]);
 
-  // Filtra ligas por temporada seleccionada
-  const filteredLeagues = pilotData?.season_id
-    ? leagues.filter((l) => l.season_id === pilotData.season_id)
-    : [];
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
 
-    const handleUpdate = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!pilotData) return;
-    
-      const [{ error: ptsError }, { error: pilotError }] = await Promise.all([
-        supabase
-          .from('pilot_team_season')
-          .update({
-            team_id: pilotData.team_id,
-            season_id: pilotData.season_id,
-            league_id: pilotData.league_id,
-          })
-          .eq('id', id),
-    
-        supabase
-          .from('pilot')
-          .update({
-            name: pilotData.name,
-            number: pilotData.number,
-          })
-          .eq('id', pilotData.pilot_id),
-      ]);
-    
-      if (ptsError || pilotError) {
-        console.error('Error al actualizar:', ptsError || pilotError);
-      } else {
-        router.push('/pilotos');
-      }
-    };
-    
+    const { error } = await supabase
+      .from('pilot')
+      .update({
+        name,
+        number,
+        avatar_url: avatarUrl,
+        role,
+        user_id: userId,
+      })
+      .eq('id', id);
 
-  if (loading) return <p className="p-6 text-gray-700 dark:text-white">Cargando datos...</p>;
+    if (error) {
+      setError('Error al guardar los cambios.');
+      console.error(error);
+    } else {
+      router.push('/pilotos');
+    }
+  };
+
+  if (loading) return <p className="p-6">Cargando...</p>;
 
   return (
     <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">
-        Editar Piloto
-      </h1>
-
-      <form onSubmit={handleUpdate} className="space-y-4">
+      <h1 className="text-2xl font-semibold mb-4">Editar Piloto</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block mb-1 text-gray-800 dark:text-gray-200">Nombre</label>
+          <label className="block mb-1 font-medium">Nombre</label>
           <input
             type="text"
-            value={pilotData.name}
-            onChange={(e) =>
-              setPilotData({ ...pilotData, name: e.target.value })
-            }
-            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            className="w-full border px-3 py-2 rounded"
           />
         </div>
-
         <div>
-          <label className="block mb-1 text-gray-800 dark:text-gray-200">Número</label>
+          <label className="block mb-1 font-medium">Número</label>
           <input
             type="number"
-            value={pilotData.number}
-            onChange={(e) =>
-              setPilotData({ ...pilotData, number: Number(e.target.value) })
-            }
-            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
+            value={number}
+            onChange={(e) => setNumber(Number(e.target.value))}
+            required
+            className="w-full border px-3 py-2 rounded"
           />
         </div>
-
         <div>
-          <label className="block mb-1 text-gray-800 dark:text-gray-200">Temporada</label>
-          <select
-            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
-            value={pilotData.season_id}
-            onChange={(e) =>
-              setPilotData({ ...pilotData, season_id: e.target.value, league_id: '' })
-            }
-          >
-            {seasons.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <label className="block mb-1 font-medium">Avatar URL</label>
+          <input
+            type="text"
+            value={avatarUrl}
+            onChange={(e) => setAvatarUrl(e.target.value)}
+            className="w-full border px-3 py-2 rounded"
+          />
         </div>
-
         <div>
-          <label className="block mb-1 text-gray-800 dark:text-gray-200">Liga</label>
-          <select
-            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
-            value={pilotData.league_id}
-            onChange={(e) =>
-              setPilotData({ ...pilotData, league_id: e.target.value })
-            }
-          >
-            {filteredLeagues.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
+          <label className="block mb-1 font-medium">Rol</label>
+          <input
+            type="text"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="w-full border px-3 py-2 rounded"
+          />
         </div>
-
         <div>
-          <label className="block mb-1 text-gray-800 dark:text-gray-200">Equipo</label>
-          <select
-            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
-            value={pilotData.team_id}
-            onChange={(e) =>
-              setPilotData({ ...pilotData, team_id: e.target.value })
-            }
-          >
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          <label className="block mb-1 font-medium">User ID</label>
+          <input
+            type="text"
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            className="w-full border px-3 py-2 rounded"
+          />
         </div>
-
-        <div className="pt-4">
+        {error && <p className="text-red-500">{error}</p>}
+        <div className="flex gap-2">
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             Guardar cambios
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push('/pilotos')}
+            className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+          >
+            Cancelar
           </button>
         </div>
       </form>

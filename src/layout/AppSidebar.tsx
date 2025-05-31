@@ -23,6 +23,7 @@ import {
 const navItems = [
   { name: 'Dashboard', path: '/', icon: <LayoutDashboardIcon size={20} /> },
   { name: 'Pilotos', path: '/pilotos', icon: <UsersIcon size={20} /> },
+  { name: 'Pilotos / temporada', path: '/pilotos-temporadas', icon: <UsersIcon size={20} /> },
   { name: 'Equipos', path: '/equipos', icon: <ShieldCheckIcon size={20} /> },
   { name: 'Circuitos', path: '/circuitos', icon: <FlagIcon size={20} /> },
   { name: 'Carreras', path: '/carreras', icon: <TrophyIcon size={20} /> },
