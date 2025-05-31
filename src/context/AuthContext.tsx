@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
 
 type AuthContextType = {
   session: Session | null;
@@ -22,13 +23,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [pilot, setPilot] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  // Carga inicial
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setPilot(null);
+    setSession(null);
+    router.replace('/signin');
+  };
+
   useEffect(() => {
     const getSessionAndPilot = async () => {
       const { data } = await supabase.auth.getSession();
       const currentSession = data.session;
-
       setSession(currentSession);
 
       if (currentSession?.user) {
@@ -36,10 +43,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .from('pilot')
           .select('*')
           .eq('user_id', currentSession.user.id)
+          .eq('role', 'admin')
           .single();
 
-        if (!error) {
+        if (!error && pilotData) {
           setPilot(pilotData);
+        } else {
+          await handleLogout(); // 👈 si no es admin, fuera
         }
       }
 
@@ -50,19 +60,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession);
 
       if (newSession?.user) {
-        supabase
+        const { data, error } = await supabase
           .from('pilot')
           .select('*')
           .eq('user_id', newSession.user.id)
-          .single()
-          .then(({ data, error }) => {
-            if (!error) setPilot(data);
-            else setPilot(null);
-          });
+          .eq('role', 'admin')
+          .single();
+
+        if (!error && data) {
+          setPilot(data);
+        } else {
+          await handleLogout(); // 👈 si no es admin, fuera
+        }
       } else {
         setPilot(null);
       }
