@@ -34,7 +34,7 @@ export default function SignInForm() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message);
+      setError("Credenciales incorrectas o cuenta no válida.");
       setLoading(false);
     } else {
       router.push("/");
@@ -49,7 +49,7 @@ export default function SignInForm() {
           className="inline-flex items-center text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
         >
           <ChevronLeftIcon />
-          Back to dashboard
+          Volver al panel
         </Link>
       </div>
 
@@ -57,10 +57,10 @@ export default function SignInForm() {
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
-              Sign In
+              Iniciar sesión
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Enter your email and password to sign in!
+              Introduce tu correo y contraseña para acceder al panel.
             </p>
           </div>
 
@@ -68,10 +68,10 @@ export default function SignInForm() {
             <div className="space-y-6">
               <div>
                 <Label>
-                  Email <span className="text-error-500">*</span>
+                  Correo electrónico <span className="text-error-500">*</span>
                 </Label>
                 <Input
-                  placeholder="info@gmail.com"
+                  placeholder="admin@kartingleague.com"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -81,12 +81,12 @@ export default function SignInForm() {
 
               <div>
                 <Label>
-                  Password <span className="text-error-500">*</span>
+                  Contraseña <span className="text-error-500">*</span>
                 </Label>
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder="Introduce tu contraseña"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -110,20 +110,20 @@ export default function SignInForm() {
                 <div className="flex items-center gap-3">
                   <Checkbox checked={isChecked} onChange={setIsChecked} />
                   <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
-                    Keep me logged in
+                    Mantener sesión iniciada
                   </span>
                 </div>
                 <Link
                   href="/reset-password"
                   className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
                 >
-                  Forgot password?
+                  ¿Olvidaste la contraseña?
                 </Link>
               </div>
 
               <div>
                 <Button className="w-full" size="sm" type="submit" disabled={loading}>
-                  {loading ? "Signing in..." : "Sign in"}
+                  {loading ? "Accediendo..." : "Entrar"}
                 </Button>
               </div>
             </div>
@@ -131,12 +131,12 @@ export default function SignInForm() {
 
           <div className="mt-5">
             <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
-              Don&apos;t have an account?{" "}
+              ¿No tienes cuenta?{" "}
               <Link
                 href="/signup"
                 className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
               >
-                Sign Up
+                Registrarse
               </Link>
             </p>
           </div>
