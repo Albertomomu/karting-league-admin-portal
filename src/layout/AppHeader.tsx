@@ -1,18 +1,19 @@
-"use client";
+'use client';
 
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
-import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
 import { useSidebar } from "@/context/SidebarContext";
+import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
 const AppHeader: React.FC = () => {
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
+  const { pilot } = useAuth();
 
   const handleToggle = () => {
-    if (window.innerWidth >= 1024) {
+    if (typeof window !== "undefined" && window.innerWidth >= 1024) {
       toggleSidebar();
     } else {
       toggleMobileSidebar();
@@ -21,7 +22,7 @@ const AppHeader: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 flex w-full items-center justify-between bg-white px-4 py-3 shadow-sm dark:bg-gray-900 lg:px-6">
-      {/* Sidebar toggle + Logo (mobile) */}
+      {/* Sidebar toggle + Logo + Texto bienvenida */}
       <div className="flex items-center gap-4">
         <button
           className="lg:hidden text-gray-600 dark:text-gray-400"
@@ -49,21 +50,27 @@ const AppHeader: React.FC = () => {
           <Image
             src="/images/logo/logo.png"
             alt="Logo"
-            width={64}
-            height={64}
+            width={48}
+            height={48}
             className="dark:hidden"
           />
           <Image
             src="/images/logo/logo.png"
             alt="Logo dark"
-            width={64}
-            height={64}
+            width={48}
+            height={48}
             className="hidden dark:block"
           />
         </Link>
+
+        <span className="hidden md:inline-block text-gray-800 dark:text-white font-semibold text-sm sm:text-base">
+          Bienvenido al panel de control de{" "}
+          <span className="text-brand-600">Karting League</span>
+          {pilot?.name && `, ${pilot.name}`}
+        </span>
       </div>
 
-      {/* Right items: Theme, Notifications, User */}
+      {/* Right items: Theme + User */}
       <div className="flex items-center gap-3">
         <ThemeToggleButton />
         <UserDropdown />
