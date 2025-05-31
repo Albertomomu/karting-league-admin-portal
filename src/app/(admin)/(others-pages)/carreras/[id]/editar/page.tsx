@@ -4,15 +4,38 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
+// Tipos explícitos
+type League = {
+  id: string;
+  name: string;
+  season_id: string;
+};
+
+type RaceData = {
+  id: string;
+  name: string;
+  date: string;
+  circuit_id: string;
+  league_id: string;
+  league: League | null;
+};
+
 export default function EditarCarreraPage() {
   const { id } = useParams();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [race, setRace] = useState<any>(null);
-  const [circuits, setCircuits] = useState<any[]>([]);
-  const [leagues, setLeagues] = useState<any[]>([]);
-  const [seasons, setSeasons] = useState<any[]>([]);
+  const [race, setRace] = useState<{
+    name: string;
+    date: string;
+    circuit_id: string;
+    league_id: string;
+    season_id: string;
+  } | null>(null);
+
+  const [circuits, setCircuits] = useState<{ id: string; name: string }[]>([]);
+  const [leagues, setLeagues] = useState<League[]>([]);
+  const [seasons, setSeasons] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -23,7 +46,7 @@ export default function EditarCarreraPage() {
           league:league_id ( id, name, season_id )
         `)
         .eq('id', id)
-        .single();
+        .single<RaceData>();
 
       if (error || !raceData) {
         console.error('Error al cargar carrera', error);
@@ -54,10 +77,6 @@ export default function EditarCarreraPage() {
     fetchData();
   }, [id]);
 
-  const filteredLeagues = race?.season_id
-    ? leagues.filter((l) => l.season_id === race.season_id)
-    : [];
-
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!race) return;
@@ -72,55 +91,92 @@ export default function EditarCarreraPage() {
       })
       .eq('id', id);
 
-    if (!error) {
-      router.push('/carreras');
+    if (error) {
+      console.error('Error al actualizar carrera:', error);
     } else {
-      console.error('Error al actualizar carrera', error);
+      router.push('/carreras');
     }
   };
 
-  if (loading) return <p className="p-6 text-gray-700 dark:text-white">Cargando datos...</p>;
+  if (loading || !race) {
+    return <p className="p-6 text-gray-700 dark:text-white">Cargando datos...</p>;
+  }
 
   return (
     <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Editar Carrera</h1>
+      <h1 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">
+        Editar Carrera
+      </h1>
 
-      <form onSubmit={handleUpdate} className="space-y-5">
-        <InputField
-          label="Nombre"
-          value={race.name}
-          onChange={(v) => setRace({ ...race, name: v })}
-        />
-        <InputField
-          label="Fecha"
-          type="date"
-          value={race.date?.slice(0, 10)}
-          onChange={(v) => setRace({ ...race, date: v })}
-        />
-        <SelectField
-          label="Temporada"
-          value={race.season_id}
-          options={seasons}
-          onChange={(val) =>
-            setRace((prev: any) => ({
-              ...prev,
-              season_id: val,
-              league_id: '',
-            }))
-          }
-        />
-        <SelectField
-          label="Liga"
-          value={race.league_id}
-          options={filteredLeagues}
-          onChange={(val) => setRace({ ...race, league_id: val })}
-        />
-        <SelectField
-          label="Circuito"
-          value={race.circuit_id}
-          options={circuits}
-          onChange={(val) => setRace({ ...race, circuit_id: val })}
-        />
+      <form onSubmit={handleUpdate} className="space-y-4">
+        <div>
+          <label className="block mb-1 text-gray-800 dark:text-gray-200">Nombre</label>
+          <input
+            type="text"
+            value={race.name}
+            onChange={(e) => setRace({ ...race, name: e.target.value })}
+            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1 text-gray-800 dark:text-gray-200">Fecha</label>
+          <input
+            type="date"
+            value={race.date}
+            onChange={(e) => setRace({ ...race, date: e.target.value })}
+            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1 text-gray-800 dark:text-gray-200">Circuito</label>
+          <select
+            value={race.circuit_id}
+            onChange={(e) => setRace({ ...race, circuit_id: e.target.value })}
+            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
+            required
+          >
+            {circuits.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block mb-1 text-gray-800 dark:text-gray-200">Temporada</label>
+          <select
+            disabled
+            value={race.season_id}
+            className="w-full px-4 py-2 border rounded bg-gray-100 dark:bg-gray-800 dark:text-white"
+          >
+            {seasons.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block mb-1 text-gray-800 dark:text-gray-200">Liga</label>
+          <select
+            value={race.league_id}
+            onChange={(e) => setRace({ ...race, league_id: e.target.value })}
+            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
+            required
+          >
+            {leagues.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="pt-4">
           <button
@@ -131,60 +187,6 @@ export default function EditarCarreraPage() {
           </button>
         </div>
       </form>
-    </div>
-  );
-}
-
-function InputField({
-  label,
-  value,
-  onChange,
-  type = 'text',
-}: {
-  label: string;
-  value: string;
-  onChange: (val: string) => void;
-  type?: string;
-}) {
-  return (
-    <div>
-      <label className="block mb-1 text-gray-800 dark:text-gray-200">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
-      />
-    </div>
-  );
-}
-
-function SelectField({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: { id: string; name: string }[];
-  onChange: (val: string) => void;
-}) {
-  return (
-    <div>
-      <label className="block mb-1 text-gray-800 dark:text-gray-200">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
-      >
-        <option value="">Seleccionar</option>
-        {options.map((opt) => (
-          <option key={opt.id} value={opt.id}>
-            {opt.name}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }
