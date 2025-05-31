@@ -21,19 +21,21 @@ export default function EditarPilotoPage() {
         .select(`
           id,
           pilot:pilot_id ( id, name, number, avatar_url ),
+          team:team_id ( id, name ),
           season:season_id ( id, name ),
-          league:league_id ( id, name ),
-          team:team_id ( id, name )
+          league:league_id ( id, name, season_id )
         `)
         .eq('id', id)
         .single();
 
       if (!data || error) {
         console.error('Error al cargar datos del piloto', error);
+        setLoading(false);
         return;
       }
 
       setPilotData({
+        pilot_id: data.pilot.id,
         name: data.pilot.name,
         number: data.pilot.number,
         avatar_url: data.pilot.avatar_url,
@@ -45,7 +47,7 @@ export default function EditarPilotoPage() {
       const [teamRes, seasonRes, leagueRes] = await Promise.all([
         supabase.from('team').select('id, name'),
         supabase.from('season').select('id, name'),
-        supabase.from('league').select('id, name'),
+        supabase.from('league').select('id, name, season_id'),
       ]);
 
       setTeams(teamRes.data || []);
@@ -57,25 +59,41 @@ export default function EditarPilotoPage() {
     fetchData();
   }, [id]);
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pilotData) return;
+  // Filtra ligas por temporada seleccionada
+  const filteredLeagues = pilotData?.season_id
+    ? leagues.filter((l) => l.season_id === pilotData.season_id)
+    : [];
 
-    const { error } = await supabase
-      .from('pilot_team_season')
-      .update({
-        team_id: pilotData.team_id,
-        season_id: pilotData.season_id,
-        league_id: pilotData.league_id,
-      })
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error al actualizar piloto', error);
-    } else {
-      router.push('/pilotos');
-    }
-  };
+    const handleUpdate = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!pilotData) return;
+    
+      const [{ error: ptsError }, { error: pilotError }] = await Promise.all([
+        supabase
+          .from('pilot_team_season')
+          .update({
+            team_id: pilotData.team_id,
+            season_id: pilotData.season_id,
+            league_id: pilotData.league_id,
+          })
+          .eq('id', id),
+    
+        supabase
+          .from('pilot')
+          .update({
+            name: pilotData.name,
+            number: pilotData.number,
+          })
+          .eq('id', pilotData.pilot_id),
+      ]);
+    
+      if (ptsError || pilotError) {
+        console.error('Error al actualizar:', ptsError || pilotError);
+      } else {
+        router.push('/pilotos');
+      }
+    };
+    
 
   if (loading) return <p className="p-6 text-gray-700 dark:text-white">Cargando datos...</p>;
 
@@ -90,9 +108,11 @@ export default function EditarPilotoPage() {
           <label className="block mb-1 text-gray-800 dark:text-gray-200">Nombre</label>
           <input
             type="text"
-            disabled
             value={pilotData.name}
-            className="w-full px-4 py-2 border rounded bg-gray-100 dark:bg-gray-800 dark:text-white"
+            onChange={(e) =>
+              setPilotData({ ...pilotData, name: e.target.value })
+            }
+            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
           />
         </div>
 
@@ -100,19 +120,21 @@ export default function EditarPilotoPage() {
           <label className="block mb-1 text-gray-800 dark:text-gray-200">Número</label>
           <input
             type="number"
-            disabled
             value={pilotData.number}
-            className="w-full px-4 py-2 border rounded bg-gray-100 dark:bg-gray-800 dark:text-white"
+            onChange={(e) =>
+              setPilotData({ ...pilotData, number: Number(e.target.value) })
+            }
+            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
           />
         </div>
 
         <div>
           <label className="block mb-1 text-gray-800 dark:text-gray-200">Temporada</label>
           <select
-            className="w-full px-4 py-2 border rounded dark:bg-gray-800 dark:text-white"
+            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
             value={pilotData.season_id}
             onChange={(e) =>
-              setPilotData({ ...pilotData, season_id: e.target.value })
+              setPilotData({ ...pilotData, season_id: e.target.value, league_id: '' })
             }
           >
             {seasons.map((s) => (
@@ -126,13 +148,13 @@ export default function EditarPilotoPage() {
         <div>
           <label className="block mb-1 text-gray-800 dark:text-gray-200">Liga</label>
           <select
-            className="w-full px-4 py-2 border rounded dark:bg-gray-800 dark:text-white"
+            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
             value={pilotData.league_id}
             onChange={(e) =>
               setPilotData({ ...pilotData, league_id: e.target.value })
             }
           >
-            {leagues.map((l) => (
+            {filteredLeagues.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.name}
               </option>
@@ -143,7 +165,7 @@ export default function EditarPilotoPage() {
         <div>
           <label className="block mb-1 text-gray-800 dark:text-gray-200">Equipo</label>
           <select
-            className="w-full px-4 py-2 border rounded dark:bg-gray-800 dark:text-white"
+            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
             value={pilotData.team_id}
             onChange={(e) =>
               setPilotData({ ...pilotData, team_id: e.target.value })
