@@ -7,9 +7,8 @@ import Button from "@/components/ui/button/Button";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useAuth } from "@/context/AuthContext";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -19,40 +18,54 @@ export default function SignInForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { session } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    if (session) router.push("/");
-  }, [session, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // 1. Autenticación
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    if (error) {
+    if (signInError || !signInData.session) {
       setError("Credenciales incorrectas o cuenta no válida.");
       setLoading(false);
-    } else {
-      router.push("/");
+      return;
     }
+
+    // 2. Buscar el piloto asociado a ese usuario
+    const userId = signInData.session.user.id;
+    const { data: pilot, error: pilotError } = await supabase
+      .from("pilot")
+      .select("role")
+      .eq("user_id", userId)
+      .single();
+
+    if (pilotError || !pilot) {
+      setError("No tienes permisos para acceder al panel.");
+      await supabase.auth.signOut();
+      setLoading(false);
+      return;
+    }
+
+    // 3. Verificar rol
+    if (pilot.role !== "admin") {
+      setError("No tienes permisos de administrador.");
+      await supabase.auth.signOut();
+      setLoading(false);
+      return;
+    }
+
+    // 4. Si todo OK, redirigir al panel
+    router.push("/");
   };
 
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
-      <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
-        <Link
-          href="/"
-          className="inline-flex items-center text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-        >
-          <ChevronLeftIcon />
-          Volver al panel
-        </Link>
-      </div>
-
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
         <div>
           <div className="mb-5 sm:mb-8">
@@ -128,18 +141,6 @@ export default function SignInForm() {
               </div>
             </div>
           </form>
-
-          <div className="mt-5">
-            <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
-              ¿No tienes cuenta?{" "}
-              <Link
-                href="/signup"
-                className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
-              >
-                Registrarse
-              </Link>
-            </p>
-          </div>
         </div>
       </div>
     </div>
