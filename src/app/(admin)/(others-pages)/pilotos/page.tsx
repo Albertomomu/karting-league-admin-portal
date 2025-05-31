@@ -14,6 +14,8 @@ type Pilot = {
 
 export default function PilotsPage() {
   const [pilots, setPilots] = useState<Pilot[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const router = useRouter();
 
   useEffect(() => {
@@ -28,11 +30,15 @@ export default function PilotsPage() {
         return;
       }
 
-      setPilots(data);
+      setPilots(data || []);
     };
 
     fetchPilots();
   }, []);
+
+  const startIdx = (currentPage - 1) * itemsPerPage;
+  const paginated = pilots.slice(startIdx, startIdx + itemsPerPage);
+  const totalPages = Math.ceil(pilots.length / itemsPerPage);
 
   return (
     <div className="p-6">
@@ -48,6 +54,21 @@ export default function PilotsPage() {
         </button>
       </div>
 
+      <div className="mb-4">
+        <label className="text-sm text-gray-700 dark:text-gray-300 mr-2">Mostrar:</label>
+        <select
+          value={itemsPerPage}
+          onChange={(e) => setItemsPerPage(Number(e.target.value))}
+          className="border rounded px-3 py-1 dark:bg-gray-800 dark:text-white"
+        >
+          {[5, 10, 25, 50, 100].map((n) => (
+            <option key={n} value={n}>
+              {n} por página
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-sm">
           <thead>
@@ -60,7 +81,7 @@ export default function PilotsPage() {
             </tr>
           </thead>
           <tbody>
-            {pilots.map((pilot) => (
+            {paginated.map((pilot) => (
               <tr
                 key={pilot.id}
                 className="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -96,6 +117,24 @@ export default function PilotsPage() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-6 gap-2">
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`px-3 py-1 border rounded ${
+                currentPage === i + 1
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-white'
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
