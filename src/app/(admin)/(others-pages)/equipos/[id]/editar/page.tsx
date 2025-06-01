@@ -63,7 +63,12 @@ export default function EditarEquipoPage() {
           <input
             type="text"
             value={team?.name || ''}
-            onChange={(e) => setTeam({ ...team, name: e.target.value })}
+            onChange={e =>
+              setTeam({
+                name: e.target.value,
+                logo_url: team?.logo_url ?? null,
+              })
+            }
             className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
           />
         </div>
@@ -73,7 +78,12 @@ export default function EditarEquipoPage() {
           <input
             type="text"
             value={team?.logo_url || ''}
-            onChange={(e) => setTeam({ ...team, logo_url: e.target.value })}
+            onChange={e =>
+              setTeam({
+                name: team?.name ?? '',
+                logo_url: e.target.value,
+              })
+            }
             className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
           />
         </div>

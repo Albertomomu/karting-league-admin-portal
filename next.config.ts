@@ -14,7 +14,8 @@ const nextConfig: NextConfig = {
   },
   images: {
     domains: [
-      'https://karting-league-admin-portal.vercel.app',
+      'karting-league-admin-portal.vercel.app',
+      'kartingleague.es',
       'imgs.search.brave.com'
     ],
   },

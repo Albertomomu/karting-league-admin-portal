@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { PilotTeamSeason, supabase } from '@/lib/supabase';
+import Image from 'next/image';
 
 type Team = {
   id: string;
@@ -54,19 +55,20 @@ export default function EquiposPage() {
           team:team_id ( id, name, logo_url ),
           season:season_id ( id, name ),
           league:league_id ( id, name )
-        `);
+        `)
+        .overrideTypes<PilotTeamSeason[]>();
 
       if (error) {
         console.error('Error fetching equipos:', error);
         return;
       }
 
-      setEntries(data);
+      setEntries(data as Entry[]);
 
       const tempSeasons = Array.from(
-        new Map(data.map((d) => [d.season.id, d.season])).values()
+        new Map(data.map((d) => [d.season?.id, d.season])).values()
       );
-      setSeasons(tempSeasons);
+      setSeasons(tempSeasons as Season[]);
     };
 
     fetchData();
@@ -82,7 +84,7 @@ export default function EquiposPage() {
     const validLeagues = Array.from(
       new Map(result.map((d) => [d.league.id, d.league])).values()
     );
-    setLeagues(validLeagues);
+    setLeagues(validLeagues as League[]);
 
     if (selectedLeague && !validLeagues.find((l) => l.id === selectedLeague)) {
       setSelectedLeague('');
@@ -157,10 +159,12 @@ export default function EquiposPage() {
               >
                 <td className="p-3">
                   {entry.team.logo_url ? (
-                    <img
+                    <Image
                       src={entry.team.logo_url}
                       alt={entry.team.name}
                       className="w-10 h-10 object-contain rounded"
+                      width={40}
+                      height={40}
                     />
                   ) : (
                     <div className="w-10 h-10 bg-gray-300 dark:bg-gray-700 rounded" />
