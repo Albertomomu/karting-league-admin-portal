@@ -3,13 +3,33 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
+
+type Result = {
+  id: string;
+  race_id: string;
+  race_name: string;
+  session_id: string;
+  session_name: string;
+  pilot_id: string;
+  pilot_name: string;
+  avatar_url: string;
+  race_position: number | null;
+  best_lap: string | null;
+  points: number | null;
+};
+
+function single<T>(rel: T | T[] | null | undefined): T {
+  if (Array.isArray(rel)) return rel[0];
+  return rel as T;
+}
 
 export default function EditarResultadoPage() {
   const { id } = useParams();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [resultData, setResultData] = useState<any>(null);
+  const [resultData, setResultData] = useState<Result | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -25,7 +45,8 @@ export default function EditarResultadoPage() {
           points
         `)
         .eq('id', id)
-        .single();
+        .single()
+        .overrideTypes<Result>();
 
       if (!data || error) {
         console.error('Error cargando resultado:', error);
@@ -33,16 +54,17 @@ export default function EditarResultadoPage() {
       }
 
       setResultData({
-        race_id: data.race.id,
-        race_name: data.race.name,
-        session_id: data.session.id,
-        session_name: data.session.name,
-        pilot_id: data.pilot.id,
-        pilot_name: data.pilot.name,
-        avatar_url: data.pilot.avatar_url,
-        race_position: data.race_position ?? '',
-        best_lap: data.best_lap ?? '',
-        points: data.points ?? '',
+        race_id: single(data.race)?.id ?? '',
+        race_name: single(data.race)?.name ?? '',
+        session_id: single(data.session)?.id ?? '',
+        session_name: single(data.session)?.name ?? '',
+        pilot_id: single(data.pilot)?.id ?? '',
+        pilot_name: single(data.pilot)?.name ?? '',
+        avatar_url: single(data.pilot)?.avatar_url ?? '',
+        race_position: data.race_position ?? null,
+        best_lap: data.best_lap ?? null,
+        points: data.points ?? null,
+        id: data.id,
       });
 
       setLoading(false);
@@ -57,9 +79,9 @@ export default function EditarResultadoPage() {
     const { error } = await supabase
       .from('race_result')
       .update({
-        race_position: resultData.race_position === '' ? null : Number(resultData.race_position),
-        best_lap: resultData.best_lap || null,
-        points: resultData.points === '' ? null : Number(resultData.points),
+        race_position: resultData?.race_position === null ? null : Number(resultData?.race_position),
+        best_lap: resultData?.best_lap || null,
+        points: resultData?.points === null ? null : Number(resultData?.points),
       })
       .eq('id', id);
 
@@ -80,19 +102,21 @@ export default function EditarResultadoPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex items-center gap-3">
-          {resultData.avatar_url ? (
-            <img
-              src={resultData.avatar_url}
-              alt={resultData.pilot_name}
+          {resultData?.avatar_url ? (
+            <Image
+              src={resultData?.avatar_url}
+              alt={resultData?.pilot_name}
               className="w-10 h-10 rounded-full object-cover"
+              width={40}
+              height={40}
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-gray-400 dark:bg-gray-700 text-white flex items-center justify-center">
-              {resultData.pilot_name.charAt(0)}
+              {resultData?.pilot_name.charAt(0)}
             </div>
           )}
           <span className="text-lg font-medium text-gray-900 dark:text-white">
-            {resultData.pilot_name}
+            {resultData?.pilot_name}
           </span>
         </div>
 
@@ -100,7 +124,7 @@ export default function EditarResultadoPage() {
           <label className="block mb-1 text-gray-700 dark:text-gray-300">Carrera</label>
           <input
             disabled
-            value={resultData.race_name}
+            value={resultData?.race_name}
             className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 dark:text-white rounded border"
           />
         </div>
@@ -109,7 +133,7 @@ export default function EditarResultadoPage() {
           <label className="block mb-1 text-gray-700 dark:text-gray-300">Sesión</label>
           <input
             disabled
-            value={resultData.session_name}
+            value={resultData?.session_name}
             className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 dark:text-white rounded border"
           />
         </div>
@@ -118,9 +142,21 @@ export default function EditarResultadoPage() {
           <label className="block mb-1 text-gray-700 dark:text-gray-300">Posición</label>
           <input
             type="number"
-            value={resultData.race_position}
+            value={resultData?.race_position ?? ''}
             onChange={(e) =>
-              setResultData({ ...resultData, race_position: e.target.value })
+              setResultData({
+                id: resultData?.id ?? '',
+                race_id: resultData?.race_id ?? '',
+                race_name: resultData?.race_name ?? '',
+                session_id: resultData?.session_id ?? '',
+                session_name: resultData?.session_name ?? '',
+                pilot_id: resultData?.pilot_id ?? '',
+                pilot_name: resultData?.pilot_name ?? '',
+                avatar_url: resultData?.avatar_url ?? '',
+                race_position: Number(e.target.value),
+                best_lap: resultData?.best_lap ?? null,
+                points: resultData?.points ?? null,
+              })
             }
             className="w-full px-4 py-2 rounded border bg-white dark:bg-gray-800 dark:text-white"
           />
@@ -130,9 +166,21 @@ export default function EditarResultadoPage() {
           <label className="block mb-1 text-gray-700 dark:text-gray-300">Mejor Vuelta</label>
           <input
             type="text"
-            value={resultData.best_lap}
+            value={resultData?.best_lap ?? ''}
             onChange={(e) =>
-              setResultData({ ...resultData, best_lap: e.target.value })
+              setResultData({
+                id: resultData?.id ?? '',
+                race_id: resultData?.race_id ?? '',
+                race_name: resultData?.race_name ?? '',
+                session_id: resultData?.session_id ?? '',
+                session_name: resultData?.session_name ?? '',
+                pilot_id: resultData?.pilot_id ?? '',
+                pilot_name: resultData?.pilot_name ?? '',
+                avatar_url: resultData?.avatar_url ?? '',
+                race_position: resultData?.race_position ?? null,
+                best_lap: e.target.value,
+                points: resultData?.points ?? null,
+              })
             }
             placeholder="ej. 00:58.124"
             className="w-full px-4 py-2 rounded border bg-white dark:bg-gray-800 dark:text-white"
@@ -143,9 +191,21 @@ export default function EditarResultadoPage() {
           <label className="block mb-1 text-gray-700 dark:text-gray-300">Puntos</label>
           <input
             type="number"
-            value={resultData.points}
+            value={resultData?.points ?? ''}
             onChange={(e) =>
-              setResultData({ ...resultData, points: e.target.value })
+              setResultData({
+                id: resultData?.id ?? '',
+                race_id: resultData?.race_id ?? '',
+                race_name: resultData?.race_name ?? '',
+                session_id: resultData?.session_id ?? '',
+                session_name: resultData?.session_name ?? '',
+                pilot_id: resultData?.pilot_id ?? '',
+                pilot_name: resultData?.pilot_name ?? '',
+                avatar_url: resultData?.avatar_url ?? '',
+                race_position: resultData?.race_position ?? null,
+                best_lap: resultData?.best_lap ?? null,
+                points: Number(e.target.value),
+              })
             }
             className="w-full px-4 py-2 rounded border bg-white dark:bg-gray-800 dark:text-white"
           />

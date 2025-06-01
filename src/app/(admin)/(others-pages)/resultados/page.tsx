@@ -47,7 +47,8 @@ export default function ResultadosPage() {
       const { data, error } = await supabase
         .from('race_result')
         .select('session_id, session:session_id ( id, name )')
-        .eq('race_id', selectedRace);
+        .eq('race_id', selectedRace)
+        .overrideTypes<{ session_id: string; session: Session }[]>();
 
       if (error) {
         console.error('Error fetching sessions', error);
@@ -55,7 +56,7 @@ export default function ResultadosPage() {
       }
 
       const uniqueSessions = Array.from(
-        new Map((data as Session[] || []).map((r) => [r.session.id, r.session])).values()
+        new Map((data as { session_id: string; session: Session }[] || []).map((r) => [r.session.id, r.session])).values()
       );
 
       setSessions(uniqueSessions);
@@ -83,6 +84,7 @@ export default function ResultadosPage() {
       `)
       .eq('race_id', selectedRace)
       .eq('session_id', selectedSession)
+      .overrideTypes<Result[]>()
       .then(({ data, error }) => {
         if (!error) setResults(data || []);
       });
