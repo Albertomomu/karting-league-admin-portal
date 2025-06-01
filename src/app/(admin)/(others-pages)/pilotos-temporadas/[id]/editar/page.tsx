@@ -2,17 +2,33 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, Team, Season, League } from '@/lib/supabase';
+
+// Tipo plano para el formulario (sin relaciones anidadas)
+type PilotFormData = {
+  pilot_id: string;
+  name: string;
+  number: number;
+  avatar_url: string | null;
+  team_id: string;
+  season_id: string;
+  league_id: string;
+};
+
+function single<T>(rel: T | T[] | null | undefined): T {
+  if (Array.isArray(rel)) return rel[0];
+  return rel as T;
+}
 
 export default function EditarPilotoPage() {
   const { id } = useParams();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [pilotData, setPilotData] = useState<any>(null);
-  const [teams, setTeams] = useState<any[]>([]);
-  const [seasons, setSeasons] = useState<any[]>([]);
-  const [leagues, setLeagues] = useState<any[]>([]);
+  const [pilotData, setPilotData] = useState<PilotFormData | null>(null);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [leagues, setLeagues] = useState<League[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,13 +51,13 @@ export default function EditarPilotoPage() {
       }
 
       setPilotData({
-        pilot_id: data.pilot.id,
-        name: data.pilot.name,
-        number: data.pilot.number,
-        avatar_url: data.pilot.avatar_url,
-        team_id: data.team.id,
-        season_id: data.season.id,
-        league_id: data.league.id,
+        pilot_id: single(data.pilot)?.id ?? '',
+        name: single(data.pilot)?.name ?? '',
+        number: single(data.pilot)?.number ?? 0,
+        avatar_url: single(data.pilot)?.avatar_url ?? null,
+        team_id: single(data.team)?.id ?? '',
+        season_id: single(data.season)?.id ?? '',
+        league_id: single(data.league)?.id ?? '',
       });
 
       const [teamRes, seasonRes, leagueRes] = await Promise.all([
@@ -50,9 +66,9 @@ export default function EditarPilotoPage() {
         supabase.from('league').select('id, name, season_id'),
       ]);
 
-      setTeams(teamRes.data || []);
-      setSeasons(seasonRes.data || []);
-      setLeagues(leagueRes.data || []);
+      setTeams(teamRes.data as Team[] || []);
+      setSeasons(seasonRes.data as Season[] || []);
+      setLeagues(leagueRes.data as League[] || []);
       setLoading(false);
     };
 
@@ -94,8 +110,7 @@ export default function EditarPilotoPage() {
     }
   };
 
-
-  if (loading) return <p className="p-6 text-gray-700 dark:text-white">Cargando datos...</p>;
+  if (loading || !pilotData) return <p className="p-6 text-gray-700 dark:text-white">Cargando datos...</p>;
 
   return (
     <div className="p-6 max-w-xl mx-auto">
@@ -110,7 +125,17 @@ export default function EditarPilotoPage() {
             type="text"
             value={pilotData.name}
             onChange={(e) =>
-              setPilotData({ ...pilotData, name: e.target.value })
+              setPilotData({
+                ...pilotData,
+                name: e.target.value,
+                // aseguramos que los campos requeridos siempre están presentes
+                pilot_id: pilotData.pilot_id ?? '',
+                number: pilotData.number ?? 0,
+                avatar_url: pilotData.avatar_url ?? null,
+                team_id: pilotData.team_id ?? '',
+                season_id: pilotData.season_id ?? '',
+                league_id: pilotData.league_id ?? '',
+              })
             }
             className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
           />
@@ -122,7 +147,16 @@ export default function EditarPilotoPage() {
             type="number"
             value={pilotData.number}
             onChange={(e) =>
-              setPilotData({ ...pilotData, number: Number(e.target.value) })
+              setPilotData({
+                ...pilotData,
+                number: Number(e.target.value),
+                pilot_id: pilotData.pilot_id ?? '',
+                name: pilotData.name ?? '',
+                avatar_url: pilotData.avatar_url ?? null,
+                team_id: pilotData.team_id ?? '',
+                season_id: pilotData.season_id ?? '',
+                league_id: pilotData.league_id ?? '',
+              })
             }
             className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
           />
@@ -134,7 +168,16 @@ export default function EditarPilotoPage() {
             className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
             value={pilotData.season_id}
             onChange={(e) =>
-              setPilotData({ ...pilotData, season_id: e.target.value, league_id: '' })
+              setPilotData({
+                ...pilotData,
+                season_id: e.target.value,
+                league_id: '', // reset league when season changes
+                pilot_id: pilotData.pilot_id ?? '',
+                name: pilotData.name ?? '',
+                number: pilotData.number ?? 0,
+                avatar_url: pilotData.avatar_url ?? null,
+                team_id: pilotData.team_id ?? '',
+              })
             }
           >
             {seasons.map((s) => (
@@ -151,7 +194,16 @@ export default function EditarPilotoPage() {
             className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
             value={pilotData.league_id}
             onChange={(e) =>
-              setPilotData({ ...pilotData, league_id: e.target.value })
+              setPilotData({
+                ...pilotData,
+                league_id: e.target.value,
+                pilot_id: pilotData.pilot_id ?? '',
+                name: pilotData.name ?? '',
+                number: pilotData.number ?? 0,
+                avatar_url: pilotData.avatar_url ?? null,
+                team_id: pilotData.team_id ?? '',
+                season_id: pilotData.season_id ?? '',
+              })
             }
           >
             {filteredLeagues.map((l) => (
@@ -168,7 +220,16 @@ export default function EditarPilotoPage() {
             className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
             value={pilotData.team_id}
             onChange={(e) =>
-              setPilotData({ ...pilotData, team_id: e.target.value })
+              setPilotData({
+                ...pilotData,
+                team_id: e.target.value,
+                pilot_id: pilotData.pilot_id ?? '',
+                name: pilotData.name ?? '',
+                number: pilotData.number ?? 0,
+                avatar_url: pilotData.avatar_url ?? null,
+                season_id: pilotData.season_id ?? '',
+                league_id: pilotData.league_id ?? '',
+              })
             }
           >
             {teams.map((t) => (
