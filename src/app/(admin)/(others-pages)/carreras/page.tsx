@@ -3,30 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-
-type Circuit = {
-  id: string;
-  name: string;
-};
-
-type League = {
-  id: string;
-  name: string;
-  season_id: string;
-};
-
-type Season = {
-  id: string;
-  name: string;
-};
-
-type Race = {
-  id: string;
-  name: string;
-  date: string;
-  circuit: Circuit | null;
-  league: League;
-};
+import { Race, League, Season } from '@/lib/supabaseTypes';
 
 export default function CarrerasPage() {
   const router = useRouter();
@@ -56,14 +33,15 @@ export default function CarrerasPage() {
           date,
           circuit:circuit_id ( id, name ),
           league:league_id ( id, name, season_id )
-        `);
+        `)
+        .overrideTypes<Race[]>();
 
       if (error) {
         console.error('Error fetching races:', error);
         return;
       }
 
-      setRaces(data);
+      setRaces(data as Race[]);
 
       // Set seasons based on league.season_id
       const uniqueSeasons = Array.from(
