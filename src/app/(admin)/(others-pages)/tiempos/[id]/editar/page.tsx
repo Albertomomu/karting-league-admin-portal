@@ -13,7 +13,7 @@ export default function EditarTiempoPage() {
 
   useEffect(() => {
     const fetchLap = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('lap_time')
         .select('lap_number, time')
         .eq('id', id)

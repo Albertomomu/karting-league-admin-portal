@@ -23,7 +23,7 @@ export default function EditarTemporadaPage() {
       .select('name, start_date, end_date, is_active')
       .eq('id', id)
       .single()
-      .then(({ data, error }) => {
+      .then(({ data }) => {
         if (data) {
           setSeason({
             name: data.name,

@@ -17,7 +17,7 @@ export default function EditarSesionPage() {
       .select('*')
       .eq('id', id)
       .single()
-      .then(({ data, error }) => {
+      .then(({ data }) => {
         if (data) setSessionData({ name: data.name });
         setLoading(false);
       });

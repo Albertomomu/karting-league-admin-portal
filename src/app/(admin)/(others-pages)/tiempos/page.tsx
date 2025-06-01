@@ -2,28 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, Season, League, Race, LapTime, Pilot, Session } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
-
-type LapTime = {
-  id: string;
-  lap_number: number;
-  time: string;
-  pilot: {
-    id: string;
-    name: string;
-    avatar_url: string | null;
-  };
-};
+import Image from 'next/image';
 
 export default function TiemposPage() {
   const router = useRouter();
 
-  const [seasons, setSeasons] = useState<any[]>([]);
-  const [leagues, setLeagues] = useState<any[]>([]);
-  const [races, setRaces] = useState<any[]>([]);
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [pilots, setPilots] = useState<any[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [leagues, setLeagues] = useState<League[]>([]);
+  const [races, setRaces] = useState<Race[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [pilots, setPilots] = useState<Pilot[]>([]);
 
   const [selectedSeason, setSelectedSeason] = useState('');
   const [selectedLeague, setSelectedLeague] = useState('');
@@ -34,7 +24,7 @@ export default function TiemposPage() {
   const [lapTimes, setLapTimes] = useState<LapTime[]>([]);
 
   useEffect(() => {
-    supabase.from('season').select('id, name').then(({ data }) => setSeasons(data || []));
+    supabase.from('season').select('id, name').then(({ data }) => setSeasons(data as Season[] || []));
   }, []);
 
   useEffect(() => {
@@ -43,7 +33,7 @@ export default function TiemposPage() {
       .from('league')
       .select('id, name, season_id')
       .eq('season_id', selectedSeason)
-      .then(({ data }) => setLeagues(data || []));
+      .then(({ data }) => setLeagues(data as League[] || []));
   }, [selectedSeason]);
 
   useEffect(() => {
@@ -52,7 +42,7 @@ export default function TiemposPage() {
       .from('race')
       .select('id, name, league_id')
       .eq('league_id', selectedLeague)
-      .then(({ data }) => setRaces(data || []));
+      .then(({ data }) => setRaces(data as Race[] || []));
   }, [selectedLeague]);
 
   useEffect(() => {
@@ -61,11 +51,12 @@ export default function TiemposPage() {
       .from('race_result')
       .select('session_id, session:session_id ( id, name )')
       .eq('race_id', selectedRace)
+      .overrideTypes<{ session_id: string; session: Session }[]>()
       .then(({ data }) => {
         const unique = Array.from(
-          new Map((data || []).map((r) => [r.session.id, r.session])).values()
+          new Map((data || []).map((r) => [r.session?.id, r.session])).values()
         );
-        setSessions(unique);
+        setSessions(unique as Session[]);
       });
   }, [selectedRace]);
 
@@ -82,25 +73,26 @@ export default function TiemposPage() {
       `)
       .eq('race_id', selectedRace)
       .eq('session_id', selectedSession)
+      .overrideTypes<LapTime[]>()
       .then(({ data }) => {
         setLapTimes(data || []);
 
         const uniquePilots = Array.from(
-          new Map((data || []).map((l) => [l.pilot.id, l.pilot])).values()
+          new Map((data || []).map((l) => [l.pilot?.id, l.pilot])).values()
         );
-        setPilots(uniquePilots);
+        setPilots(uniquePilots as Pilot[]);
       });
   }, [selectedRace, selectedSession]);
 
   const filteredLapTimes = selectedPilot
-    ? lapTimes.filter((l) => l.pilot.id === selectedPilot)
+    ? lapTimes.filter((l) => l.pilot?.id === selectedPilot)
     : lapTimes;
 
   const handleExport = () => {
     if (filteredLapTimes.length === 0) return;
 
     const exportData = filteredLapTimes.map((lap) => ({
-      Piloto: lap.pilot.name,
+      Piloto: lap.pilot?.name,
       Vuelta: lap.lap_number,
       Tiempo: lap.time,
     }));
@@ -239,18 +231,20 @@ export default function TiemposPage() {
                   className="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   <td className="p-3 text-gray-800 dark:text-white flex items-center gap-2">
-                    {l.pilot.avatar_url ? (
-                      <img
+                    {l.pilot?.avatar_url ? (
+                      <Image
                         src={l.pilot.avatar_url}
                         alt={l.pilot.name}
                         className="w-8 h-8 rounded-full object-cover"
+                        width={32}
+                        height={32}
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-white font-semibold">
-                        {l.pilot.name.charAt(0)}
+                        {l.pilot?.name.charAt(0)}
                       </div>
                     )}
-                    {l.pilot.name}
+                    {l.pilot?.name}
                   </td>
                   <td className="p-3 text-gray-800 dark:text-white">{l.lap_number}</td>
                   <td className="p-3 text-gray-800 dark:text-white">{l.time}</td>
