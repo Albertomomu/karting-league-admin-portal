@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as XLSX from 'xlsx';
+import Image from 'next/image';
 
 type Pilot = {
   id: string;
@@ -35,8 +36,6 @@ type Entry = {
   league: League;
   team: Team;
 };
-
-const ITEMS_PER_PAGE = 10;
 
 export default function PilotosPage() {
   const router = useRouter();
@@ -74,7 +73,8 @@ export default function PilotosPage() {
           team:team_id ( id, name, logo_url ),
           season:season_id ( id, name ),
           league:league_id ( id, name )
-        `);
+        `)
+        .overrideTypes<Entry[]>();
 
       if (error) {
         console.error('Error fetching pilots:', error);
@@ -230,10 +230,12 @@ export default function PilotosPage() {
               >
                 <td className="p-3">
                   {entry.pilot.avatar_url ? (
-                    <img
+                    <Image
                       src={entry.pilot.avatar_url}
                       alt={entry.pilot.name}
                       className="w-10 h-10 rounded-full object-cover"
+                      width={40}
+                      height={40}
                     />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-white font-semibold">
@@ -245,10 +247,12 @@ export default function PilotosPage() {
                 <td className="p-3 text-gray-800 dark:text-white">{entry.pilot.number}</td>
                 <td className="p-3 text-gray-800 dark:text-white flex items-center gap-2">
                   {entry.team.logo_url ? (
-                    <img
+                    <Image
                       src={entry.team.logo_url}
                       alt={entry.team.name}
                       className="w-6 h-6 rounded object-contain"
+                      width={24}
+                      height={24}
                     />
                   ) : (
                     <div className="w-6 h-6 rounded bg-gray-400 dark:bg-gray-600" />

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 type Pilot = {
   id: string;
@@ -88,10 +89,12 @@ export default function PilotsPage() {
               >
                 <td className="p-3">
                   {pilot.avatar_url ? (
-                    <img
+                    <Image
                       src={pilot.avatar_url}
                       alt={pilot.name}
                       className="w-10 h-10 rounded-full object-cover"
+                      width={40}
+                      height={40}
                     />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-white font-semibold">

@@ -2,13 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, Race, Session, Pilot, Season, League } from '@/lib/supabase';
+import Image from 'next/image';
 
-type Season = { id: string; name: string };
-type League = { id: string; name: string; season_id: string };
-type Race = { id: string; name: string; league_id: string };
-type Session = { id: string; name: string };
-type Pilot = { id: string; name: string; avatar_url: string | null };
 type Result = {
   id: string;
   race: Race;
@@ -34,9 +30,9 @@ export default function ResultadosPage() {
   const [selectedSession, setSelectedSession] = useState('');
 
   useEffect(() => {
-    supabase.from('season').select('id, name').then(({ data }) => setSeasons(data || []));
-    supabase.from('league').select('id, name, season_id').then(({ data }) => setLeagues(data || []));
-    supabase.from('race').select('id, name, league_id').then(({ data }) => setRaces(data || []));
+    supabase.from('season').select('id, name').then(({ data }) => setSeasons(data as Season[] || []));
+    supabase.from('league').select('id, name, season_id').then(({ data }) => setLeagues(data as League[] || []));
+    supabase.from('race').select('id, name, league_id').then(({ data }) => setRaces(data as Race[] || []));
   }, []);
 
   useEffect(() => {
@@ -59,7 +55,7 @@ export default function ResultadosPage() {
       }
 
       const uniqueSessions = Array.from(
-        new Map((data || []).map((r) => [r.session.id, r.session])).values()
+        new Map((data as Session[] || []).map((r) => [r.session.id, r.session])).values()
       );
 
       setSessions(uniqueSessions);
@@ -194,10 +190,12 @@ export default function ResultadosPage() {
                 >
                   <td className="p-3 flex items-center gap-2 text-gray-900 dark:text-white">
                     {res.pilot.avatar_url ? (
-                      <img
+                      <Image
                         src={res.pilot.avatar_url}
                         alt={res.pilot.name}
                         className="w-8 h-8 rounded-full object-cover"
+                        width={32}
+                        height={32}
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-white">
