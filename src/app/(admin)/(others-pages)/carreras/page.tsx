@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
-import { Race, League, Season } from '@/lib/supabaseTypes';
+import { supabase, Race, League, Season } from '@/lib/supabase';
 
 export default function CarrerasPage() {
   const router = useRouter();
@@ -48,7 +47,7 @@ export default function CarrerasPage() {
         new Map(
           data
             .filter((r) => r.league?.season_id)
-            .map((r) => [r.league.season_id, { id: r.league.season_id, name: '' }])
+            .map((r) => [r.league?.season_id, { id: r.league?.season_id, name: '' }])
         ).values()
       );
 
@@ -58,7 +57,7 @@ export default function CarrerasPage() {
         .select('id, name')
         .in('id', uniqueSeasons.map((s) => s.id));
 
-      setSeasons(seasonData || []);
+      setSeasons(seasonData as Season[] || []);
     };
 
     fetchData();
@@ -72,16 +71,16 @@ export default function CarrerasPage() {
     }
 
     const validLeagues = Array.from(
-      new Map(result.map((r) => [r.league.id, r.league])).values()
+      new Map(result.map((r) => [r.league?.id, r.league])).values()
     );
-    setLeagues(validLeagues);
+    setLeagues(validLeagues as League[]);
 
-    if (selectedLeague && !validLeagues.find((l) => l.id === selectedLeague)) {
+    if (selectedLeague && !validLeagues.find((l) => l?.id === selectedLeague)) {
       setSelectedLeague('');
     }
 
     if (selectedLeague) {
-      result = result.filter((r) => r.league.id === selectedLeague);
+      result = result.filter((r) => r.league?.id === selectedLeague);
     }
 
     setFiltered(result);
@@ -141,7 +140,7 @@ export default function CarrerasPage() {
                 <td className="p-3 text-gray-900 dark:text-white">{race.name}</td>
                 <td className="p-3 text-gray-700 dark:text-white">{new Date(race.date).toLocaleDateString()}</td>
                 <td className="p-3 text-gray-700 dark:text-white">{race.circuit?.name || '—'}</td>
-                <td className="p-3 text-gray-700 dark:text-white">{race.league.name}</td>
+                <td className="p-3 text-gray-700 dark:text-white">{race.league?.name || '—'}</td>
                 <td className="p-3">
                   <button
                     onClick={() => router.push(`/carreras/${race.id}/editar`)}

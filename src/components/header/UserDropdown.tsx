@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 export default function UserDropdown() {
@@ -57,9 +57,8 @@ export default function UserDropdown() {
         </span>
 
         <svg
-          className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
+          className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+            }`}
           width="18"
           height="20"
           viewBox="0 0 18 20"

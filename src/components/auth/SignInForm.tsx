@@ -8,7 +8,7 @@ import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabase";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
