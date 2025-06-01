@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase';
 
 export default function EditarPilotoPage() {
   const { id } = useParams();
@@ -64,36 +64,36 @@ export default function EditarPilotoPage() {
     ? leagues.filter((l) => l.season_id === pilotData.season_id)
     : [];
 
-    const handleUpdate = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!pilotData) return;
-    
-      const [{ error: ptsError }, { error: pilotError }] = await Promise.all([
-        supabase
-          .from('pilot_team_season')
-          .update({
-            team_id: pilotData.team_id,
-            season_id: pilotData.season_id,
-            league_id: pilotData.league_id,
-          })
-          .eq('id', id),
-    
-        supabase
-          .from('pilot')
-          .update({
-            name: pilotData.name,
-            number: pilotData.number,
-          })
-          .eq('id', pilotData.pilot_id),
-      ]);
-    
-      if (ptsError || pilotError) {
-        console.error('Error al actualizar:', ptsError || pilotError);
-      } else {
-        router.push('/pilotos-temporadas');
-      }
-    };
-    
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pilotData) return;
+
+    const [{ error: ptsError }, { error: pilotError }] = await Promise.all([
+      supabase
+        .from('pilot_team_season')
+        .update({
+          team_id: pilotData.team_id,
+          season_id: pilotData.season_id,
+          league_id: pilotData.league_id,
+        })
+        .eq('id', id),
+
+      supabase
+        .from('pilot')
+        .update({
+          name: pilotData.name,
+          number: pilotData.number,
+        })
+        .eq('id', pilotData.pilot_id),
+    ]);
+
+    if (ptsError || pilotError) {
+      console.error('Error al actualizar:', ptsError || pilotError);
+    } else {
+      router.push('/pilotos-temporadas');
+    }
+  };
+
 
   if (loading) return <p className="p-6 text-gray-700 dark:text-white">Cargando datos...</p>;
 

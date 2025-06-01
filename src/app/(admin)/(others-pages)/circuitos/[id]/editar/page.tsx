@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase';
+import { Circuit } from '@/lib/supabaseTypes';
 
 export default function EditarCircuitoPage() {
   const { id } = useParams();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [circuit, setCircuit] = useState<any>(null);
+  const [circuit, setCircuit] = useState<Circuit | null>(null);
 
   useEffect(() => {
     const fetchCircuit = async () => {
@@ -37,14 +38,14 @@ export default function EditarCircuitoPage() {
     const { error } = await supabase
       .from('circuit')
       .update({
-        name: circuit.name,
-        location: circuit.location,
-        length: circuit.length,
-        turns: circuit.turns,
-        description: circuit.description,
-        record_lap_time: circuit.record_lap_time,
-        record_lap_pilot: circuit.record_lap_pilot,
-        image_url: circuit.image_url,
+        name: circuit?.name,
+        location: circuit?.location,
+        length: circuit?.length,
+        turns: circuit?.turns,
+        description: circuit?.description,
+        record_lap_time: circuit?.record_lap_time,
+        record_lap_pilot: circuit?.record_lap_pilot,
+        image_url: circuit?.image_url,
       })
       .eq('id', id);
 
