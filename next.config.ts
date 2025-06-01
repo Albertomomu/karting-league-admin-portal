@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  images: {
+    domains: [
+      'https://karting-league-admin-portal.vercel.app',
+      'imgs.search.brave.com'
+    ],
+  },
 };
 
 export default nextConfig;

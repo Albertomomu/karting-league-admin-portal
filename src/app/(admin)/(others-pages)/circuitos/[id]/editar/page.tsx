@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { Circuit } from '@/lib/supabaseTypes';
+import { supabase, Circuit } from '@/lib/supabase';
 
 export default function EditarCircuitoPage() {
   const { id } = useParams();
@@ -65,14 +64,153 @@ export default function EditarCircuitoPage() {
       </h1>
 
       <form onSubmit={handleUpdate} className="space-y-5">
-        <InputField label="Nombre" value={circuit.name} onChange={(v) => setCircuit({ ...circuit, name: v })} />
-        <InputField label="Ubicación" value={circuit.location} onChange={(v) => setCircuit({ ...circuit, location: v })} />
-        <InputField label="Longitud (m)" type="number" value={circuit.length} onChange={(v) => setCircuit({ ...circuit, length: Number(v) })} />
-        <InputField label="Curvas" type="number" value={circuit.turns} onChange={(v) => setCircuit({ ...circuit, turns: Number(v) })} />
-        <InputField label="Descripción" value={circuit.description} onChange={(v) => setCircuit({ ...circuit, description: v })} textarea />
-        <InputField label="Record Lap Time" value={circuit.record_lap_time || ''} onChange={(v) => setCircuit({ ...circuit, record_lap_time: v })} />
-        <InputField label="Piloto Record" value={circuit.record_lap_pilot || ''} onChange={(v) => setCircuit({ ...circuit, record_lap_pilot: v })} />
-        <InputField label="Imagen URL" value={circuit.image_url || ''} onChange={(v) => setCircuit({ ...circuit, image_url: v })} />
+      <InputField
+        label="Nombre"
+        value={circuit?.name || ''}
+        onChange={v =>
+          setCircuit({
+            id: circuit?.id ?? '',
+            name: v,
+            location: circuit?.location ?? '',
+            length: circuit?.length ?? '',
+            turns: circuit?.turns ?? 0,
+            record_lap_time: circuit?.record_lap_time ?? null,
+            record_lap_pilot: circuit?.record_lap_pilot ?? null,
+            image_url: circuit?.image_url ?? null,
+            description: circuit?.description ?? null,
+            created_at: circuit?.created_at ?? null,
+          })
+        }
+      />
+      <InputField
+        label="Ubicación"
+        value={circuit?.location || ''}
+        onChange={v =>
+          setCircuit({
+            id: circuit?.id ?? '',
+            name: circuit?.name ?? '',
+            location: v,
+            length: circuit?.length ?? '',
+            turns: circuit?.turns ?? 0,
+            record_lap_time: circuit?.record_lap_time ?? null,
+            record_lap_pilot: circuit?.record_lap_pilot ?? null,
+            image_url: circuit?.image_url ?? null,
+            description: circuit?.description ?? null,
+            created_at: circuit?.created_at ?? null,
+          })
+        }
+      />
+      <InputField
+        label="Longitud (m)"
+        type="number"
+        value={circuit?.length || ''}
+        onChange={v =>
+          setCircuit({
+            id: circuit?.id ?? '',
+            name: circuit?.name ?? '',
+            location: circuit?.location ?? '',
+            length: v,
+            turns: circuit?.turns ?? 0,
+            record_lap_time: circuit?.record_lap_time ?? null,
+            record_lap_pilot: circuit?.record_lap_pilot ?? null,
+            image_url: circuit?.image_url ?? null,
+            description: circuit?.description ?? null,
+            created_at: circuit?.created_at ?? null,
+          })
+        }
+      />
+      <InputField
+        label="Curvas"
+        type="number"
+        value={String(circuit?.turns || '')}
+        onChange={v =>
+          setCircuit({
+            id: circuit?.id ?? '',
+            name: circuit?.name ?? '',
+            location: circuit?.location ?? '',
+            length: circuit?.length ?? '',
+            turns: Number(v),
+            record_lap_time: circuit?.record_lap_time ?? null,
+            record_lap_pilot: circuit?.record_lap_pilot ?? null,
+            image_url: circuit?.image_url ?? null,
+            description: circuit?.description ?? null,
+            created_at: circuit?.created_at ?? null,
+          })
+        }
+      />
+      <InputField
+        label="Descripción"
+        value={circuit?.description || ''}
+        onChange={v =>
+          setCircuit({
+            id: circuit?.id ?? '',
+            name: circuit?.name ?? '',
+            location: circuit?.location ?? '',
+            length: circuit?.length ?? '',
+            turns: circuit?.turns ?? 0,
+            record_lap_time: circuit?.record_lap_time ?? null,
+            record_lap_pilot: circuit?.record_lap_pilot ?? null,
+            image_url: circuit?.image_url ?? null,
+            description: v,
+            created_at: circuit?.created_at ?? null,
+          })
+        }
+        textarea
+      />
+      <InputField
+        label="Record Lap Time"
+        value={circuit?.record_lap_time || ''}
+        onChange={v =>
+          setCircuit({
+            id: circuit?.id ?? '',
+            name: circuit?.name ?? '',
+            location: circuit?.location ?? '',
+            length: circuit?.length ?? '',
+            turns: circuit?.turns ?? 0,
+            record_lap_time: v,
+            record_lap_pilot: circuit?.record_lap_pilot ?? null,
+            image_url: circuit?.image_url ?? null,
+            description: circuit?.description ?? null,
+            created_at: circuit?.created_at ?? null,
+          })
+        }
+      />
+      <InputField
+        label="Piloto Record"
+        value={circuit?.record_lap_pilot || ''}
+        onChange={v =>
+          setCircuit({
+            id: circuit?.id ?? '',
+            name: circuit?.name ?? '',
+            location: circuit?.location ?? '',
+            length: circuit?.length ?? '',
+            turns: circuit?.turns ?? 0,
+            record_lap_time: circuit?.record_lap_time ?? null,
+            record_lap_pilot: v,
+            image_url: circuit?.image_url ?? null,
+            description: circuit?.description ?? null,
+            created_at: circuit?.created_at ?? null,
+          })
+        }
+      />
+      <InputField
+        label="Imagen URL"
+        value={circuit?.image_url || ''}
+        onChange={v =>
+          setCircuit({
+            id: circuit?.id ?? '',
+            name: circuit?.name ?? '',
+            location: circuit?.location ?? '',
+            length: circuit?.length ?? '',
+            turns: circuit?.turns ?? 0,
+            record_lap_time: circuit?.record_lap_time ?? null,
+            record_lap_pilot: circuit?.record_lap_pilot ?? null,
+            image_url: v,
+            description: circuit?.description ?? null,
+            created_at: circuit?.created_at ?? null,
+          })
+        }
+      />
 
         <div className="pt-4">
           <button
@@ -95,7 +233,7 @@ function InputField({
   textarea = false,
 }: {
   label: string;
-  value: any;
+  value: string;
   onChange: (val: string) => void;
   type?: string;
   textarea?: boolean;

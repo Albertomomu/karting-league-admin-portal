@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 
 type Circuit = {
   id: string;
@@ -56,10 +57,12 @@ export default function CircuitosPage() {
               >
                 <td className="p-3">
                   {circuit.image_url ? (
-                    <img
+                    <Image
                       src={circuit.image_url}
                       alt={circuit.name}
                       className="w-14 h-10 object-cover rounded"
+                      width={56}
+                      height={40}
                     />
                   ) : (
                     <div className="w-14 h-10 bg-gray-300 dark:bg-gray-700 rounded" />
