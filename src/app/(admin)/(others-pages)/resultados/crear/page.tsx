@@ -148,15 +148,9 @@ export default function IntroducirResultadosPage() {
           .maybeSingle();
   
         if (existingError) throw existingError;
-        console.log('Existing result:', existing);
   
         if (existing) {
-          console.log('Updating result ID:', existing.id, {
-            race_position: res.race_position,
-            best_lap: res.best_lap,
-            points: res.points,
-          });
-          const { data: updated, error: updateError } = await supabase
+          const { error: updateError } = await supabase
             .from('race_result')
             .update({
               race_position: res.race_position == '' ? null : Number(res.race_position),
@@ -166,9 +160,6 @@ export default function IntroducirResultadosPage() {
             .eq('id', existing.id)
             .select()
             .maybeSingle(); // opcional pero recomendable
-
-        console.log('Update error:', updateError);
-        console.log('Updated result:', updated);
   
           if (updateError) throw updateError;
         } else {
@@ -183,7 +174,6 @@ export default function IntroducirResultadosPage() {
               points: res.points === '' ? null : Number(res.points),
             });
   
-          console.log('Insert error:', insertError);
           if (insertError) throw insertError;
         }
       }
