@@ -128,52 +128,73 @@ export default function IntroducirResultadosPage() {
     e.preventDefault();
     setLoading(true);
     setSuccess(false);
-
-    // Recorre resultados y upserta (insert/update) cada uno
-    for (const res of results) {
-      if (
-        res.race_position === '' &&
-        res.best_lap === '' &&
-        res.points === ''
-      ) {
-        // No guardar resultados vacíos
-        continue;
-      }
-      // Busca si ya existe el resultado
-      const { data: existing } = await supabase
-        .from('race_result')
-        .select('id')
-        .eq('race_id', selectedRace)
-        .eq('session_id', selectedSession)
-        .eq('pilot_id', res.pilot.id)
-        .maybeSingle();
-
-      if (existing) {
-        // Update
-        await supabase
+  
+    try {
+      for (const res of results) {
+        if (
+          res.race_position === '' &&
+          res.best_lap === '' &&
+          res.points === ''
+        ) {
+          continue;
+        }
+  
+        const { data: existing, error: existingError } = await supabase
           .from('race_result')
-          .update({
-            race_position: res.race_position === '' ? null : Number(res.race_position),
-            best_lap: res.best_lap || null,
-            points: res.points === '' ? null : Number(res.points),
-          })
-          .eq('id', existing.id);
-      } else {
-        // Insert
-        await supabase
-          .from('race_result')
-          .insert({
-            race_id: selectedRace,
-            session_id: selectedSession,
-            pilot_id: res.pilot.id,
-            race_position: res.race_position === '' ? null : Number(res.race_position),
-            best_lap: res.best_lap || null,
-            points: res.points === '' ? null : Number(res.points),
+          .select('id')
+          .eq('race_id', selectedRace)
+          .eq('session_id', selectedSession)
+          .eq('pilot_id', res.pilot.id)
+          .maybeSingle();
+  
+        if (existingError) throw existingError;
+        console.log('Existing result:', existing);
+  
+        if (existing) {
+          console.log('Updating result ID:', existing.id, {
+            race_position: res.race_position,
+            best_lap: res.best_lap,
+            points: res.points,
           });
+          const { data: updated, error: updateError } = await supabase
+            .from('race_result')
+            .update({
+              race_position: res.race_position == '' ? null : Number(res.race_position),
+              best_lap: res.best_lap || null,
+              points: res.points == '' ? null : Number(res.points),
+            })
+            .eq('id', existing.id)
+            .select()
+            .maybeSingle(); // opcional pero recomendable
+
+        console.log('Update error:', updateError);
+        console.log('Updated result:', updated);
+  
+          if (updateError) throw updateError;
+        } else {
+          const { error: insertError } = await supabase
+            .from('race_result')
+            .insert({
+              race_id: selectedRace,
+              session_id: selectedSession,
+              pilot_id: res.pilot.id,
+              race_position: res.race_position === '' ? null : Number(res.race_position),
+              best_lap: res.best_lap || null,
+              points: res.points === '' ? null : Number(res.points),
+            });
+  
+          console.log('Insert error:', insertError);
+          if (insertError) throw insertError;
+        }
       }
+  
+      setSuccess(true);
+    } catch (error) {
+      console.error('Error al guardar resultados:', error);
+      alert('Ocurrió un error al guardar resultados. Revisa la consola.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-    setSuccess(true);
   };
 
   const handleChange = (idx: number, field: string, value: string) => {
