@@ -95,9 +95,17 @@ export default function ResultadosPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">
-        Resultados de Carrera
-      </h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          Resultados de Carrera
+        </h1>
+        <button
+          onClick={() => router.push('/resultados/crear')}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Añadir Resultado
+        </button>
+      </div>
 
       <div className="flex flex-wrap gap-4 mb-6">
         <select
