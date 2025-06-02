@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase, Race, Session, Pilot, Season, League } from '@/lib/supabase';
+import { supabase, Race, Session, Pilot, Season, League, RaceResult } from '@/lib/supabase';
 import Image from 'next/image';
 
 type EditableResult = {
@@ -17,7 +16,6 @@ type PilotTeamSeason = {
 };
 
 export default function IntroducirResultadosPage() {
-  const router = useRouter();
 
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [leagues, setLeagues] = useState<League[]>([]);
@@ -51,11 +49,7 @@ export default function IntroducirResultadosPage() {
       .select('pilot:pilot_id (id, name, avatar_url)')
       .eq('league_id', selectedLeague)
       .overrideTypes<PilotTeamSeason[]>()
-      .then(({ data, error }) => {
-        if (error) {
-          setPilots([]);
-          return;
-        }
+      .then(({ data }) => {
         setPilots((data as PilotTeamSeason[] || []).map((pts) => pts.pilot));
       });
   }, [selectedLeague]);
@@ -93,16 +87,17 @@ export default function IntroducirResultadosPage() {
 
     const fetchExistingResults = async () => {
       // Trae todos los pilotos y sus resultados (si existen)
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('race_result')
         .select('id, pilot:pilot_id ( id, name, avatar_url ), race_position, best_lap, points')
         .eq('race_id', selectedRace)
-        .eq('session_id', selectedSession);
+        .eq('session_id', selectedSession)
+        .overrideTypes<RaceResult[]>();
 
       // Mapear todos los pilotos, con sus resultados si existen
       const resultsMap = new Map();
       (data || []).forEach((r) => {
-        resultsMap.set(r.pilot.id, {
+        resultsMap.set(r.pilot?.id, {
           pilot: r.pilot,
           race_position: r.race_position ?? '',
           best_lap: r.best_lap ?? '',
@@ -129,7 +124,7 @@ export default function IntroducirResultadosPage() {
   const filteredRaces = races.filter((r) => r.league_id === selectedLeague);
 
   // Guardar resultados
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setSuccess(false);
@@ -145,7 +140,7 @@ export default function IntroducirResultadosPage() {
         continue;
       }
       // Busca si ya existe el resultado
-      const { data: existing, error: findError } = await supabase
+      const { data: existing } = await supabase
         .from('race_result')
         .select('id')
         .eq('race_id', selectedRace)
@@ -181,7 +176,7 @@ export default function IntroducirResultadosPage() {
     setSuccess(true);
   };
 
-  const handleChange = (idx, field, value) => {
+  const handleChange = (idx: number, field: string, value: string) => {
     setResults((prev) =>
       prev.map((r, i) =>
         i === idx ? { ...r, [field]: value } : r
