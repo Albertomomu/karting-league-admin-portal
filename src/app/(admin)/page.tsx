@@ -14,11 +14,41 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import { useRouter } from 'next/navigation';
+
+// Tipos planos para los gráficos
+type PilotosPorTemporada = { name: string; pilotos: number };
+type TopPilot = { name: string; points: number };
+type VueltasPorSesion = { name: string; vueltas: number };
+
+// Tipos para los resultados de Supabase
+type PilotTeamSeasonWithSeason = {
+  season: { name: string }[] | { name: string } | null;
+  id: string;
+};
+type RaceResultWithPilot = {
+  points: number;
+  pilot: { name: string }[] | { name: string } | null;
+};
+type LapTimeWithSession = {
+  session: { name: string }[] | { name: string } | null;
+  id: string;
+};
+type RaceResultWithRelations = {
+  id: string;
+  points: number;
+  best_lap: string | null;
+  pilot: { name: string }[] | { name: string } | null;
+  race: { name: string }[] | { name: string } | null;
+  session: { name: string }[] | { name: string } | null;
+};
+
+// Función utilitaria para normalizar relaciones
+function single<T>(rel: T | T[] | null | undefined): T {
+  if (Array.isArray(rel)) return rel[0];
+  return rel as T;
+}
 
 export default function Dashboard() {
-  const router = useRouter();
-
   const [stats, setStats] = useState({
     pilotos: 0,
     equipos: 0,
@@ -26,10 +56,10 @@ export default function Dashboard() {
     vueltas: 0,
   });
 
-  const [pilotosPorTemporada, setPilotosPorTemporada] = useState<any[]>([]);
-  const [topPilotos, setTopPilotos] = useState<any[]>([]);
-  const [vueltasPorSesion, setVueltasPorSesion] = useState<any[]>([]);
-  const [ultimosResultados, setUltimosResultados] = useState<any[]>([]);
+  const [pilotosPorTemporada, setPilotosPorTemporada] = useState<PilotosPorTemporada[]>([]);
+  const [topPilotos, setTopPilotos] = useState<TopPilot[]>([]);
+  const [vueltasPorSesion, setVueltasPorSesion] = useState<VueltasPorSesion[]>([]);
+  const [ultimosResultados, setUltimosResultados] = useState<RaceResultWithRelations[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -47,13 +77,14 @@ export default function Dashboard() {
         vueltas: lapCount.data?.length || 0,
       });
 
+      // Pilotos por temporada
       const pilotosPorTemp = await supabase
         .from('pilot_team_season')
         .select('season:season_id(name), id');
 
       const agrupado = new Map<string, number>();
-      pilotosPorTemp.data?.forEach((p) => {
-        const name = p.season?.name || 'Desconocida';
+      (pilotosPorTemp.data as PilotTeamSeasonWithSeason[] | undefined)?.forEach((p) => {
+        const name = single(p.season)?.name || 'Desconocida';
         agrupado.set(name, (agrupado.get(name) || 0) + 1);
       });
 
@@ -64,31 +95,31 @@ export default function Dashboard() {
         }))
       );
 
-      const topPilots = await supabase
+      // Top 5 pilotos por puntos
+      const topPilotsRes = await supabase
         .from('race_result')
-        .select('points, pilot:pilot_id(id, name)')
-        .then((res) => {
-          const acumulado = new Map<string, { name: string; points: number }>();
-          res.data?.forEach((r) => {
-            const name = r.pilot?.name || 'Desconocido';
-            if (!acumulado.has(name)) {
-              acumulado.set(name, { name, points: r.points || 0 });
-            } else {
-              acumulado.get(name)!.points += r.points || 0;
-            }
-          });
-          return Array.from(acumulado.values()).sort((a, b) => b.points - a.points).slice(0, 5);
-        });
+        .select('points, pilot:pilot_id(name)');
 
+      const acumulado = new Map<string, TopPilot>();
+      (topPilotsRes.data as RaceResultWithPilot[] | undefined)?.forEach((r) => {
+        const name = single(r.pilot)?.name || 'Desconocido';
+        if (!acumulado.has(name)) {
+          acumulado.set(name, { name, points: r.points || 0 });
+        } else {
+          acumulado.get(name)!.points += r.points || 0;
+        }
+      });
+      const topPilots = Array.from(acumulado.values()).sort((a, b) => b.points - a.points).slice(0, 5);
       setTopPilotos(topPilots);
 
+      // Vueltas por sesión
       const vueltasSesion = await supabase
         .from('lap_time')
         .select('session:session_id(name), id');
 
       const vueltasGrouped = new Map<string, number>();
-      vueltasSesion.data?.forEach((v) => {
-        const name = v.session?.name || 'Desconocida';
+      (vueltasSesion.data as LapTimeWithSession[] | undefined)?.forEach((v) => {
+        const name = single(v.session)?.name || 'Desconocida';
         vueltasGrouped.set(name, (vueltasGrouped.get(name) || 0) + 1);
       });
 
@@ -96,6 +127,7 @@ export default function Dashboard() {
         Array.from(vueltasGrouped.entries()).map(([name, vueltas]) => ({ name, vueltas }))
       );
 
+      // Últimos resultados
       const ultimos = await supabase
         .from('race_result')
         .select(
@@ -104,7 +136,15 @@ export default function Dashboard() {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      setUltimosResultados(ultimos.data || []);
+      // Normaliza relaciones para evitar arrays
+      const normalizedUltimos = (ultimos.data as RaceResultWithRelations[] | undefined)?.map((r) => ({
+        ...r,
+        pilot: single(r.pilot),
+        race: single(r.race),
+        session: single(r.session),
+      })) || [];
+
+      setUltimosResultados(normalizedUltimos);
     };
 
     loadData();
@@ -197,8 +237,8 @@ export default function Dashboard() {
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
           {ultimosResultados.map((r) => (
             <li key={r.id} className="py-2 text-gray-700 dark:text-gray-200">
-              <strong>{r.pilot?.name}</strong> - {r.points} pts -{' '}
-              <span className="italic">{r.race?.name}</span> / {r.session?.name} - Mejor vuelta:{' '}
+              <strong>{(r.pilot as { name: string })?.name}</strong> - {r.points} pts -{' '}
+              <span className="italic">{(r.race as { name: string })?.name}</span> / {(r.session as { name: string })?.name} - Mejor vuelta:{' '}
               <code>{r.best_lap || '—'}</code>
             </li>
           ))}

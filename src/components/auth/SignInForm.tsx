@@ -1,10 +1,6 @@
 "use client";
 
-import Checkbox from "@/components/form/input/Checkbox";
-import Input from "@/components/form/input/InputField";
-import Label from "@/components/form/Label";
-import Button from "@/components/ui/button/Button";
-import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
+import { EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -80,10 +76,11 @@ export default function SignInForm() {
           <form onSubmit={handleSubmit}>
             <div className="space-y-6">
               <div>
-                <Label>
+                <label className="block mb-1 font-medium text-gray-700 dark:text-white/80">
                   Correo electrónico <span className="text-error-500">*</span>
-                </Label>
-                <Input
+                </label>
+                <input
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-white"
                   placeholder="admin@kartingleague.com"
                   type="email"
                   value={email}
@@ -93,11 +90,12 @@ export default function SignInForm() {
               </div>
 
               <div>
-                <Label>
+                <label className="block mb-1 font-medium text-gray-700 dark:text-white/80">
                   Contraseña <span className="text-error-500">*</span>
-                </Label>
+                </label>
                 <div className="relative">
-                  <Input
+                  <input
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-white"
                     type={showPassword ? "text" : "password"}
                     placeholder="Introduce tu contraseña"
                     value={password}
@@ -121,7 +119,12 @@ export default function SignInForm() {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Checkbox checked={isChecked} onChange={setIsChecked} />
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => setIsChecked(e.target.checked)}
+                    className="accent-brand-500 w-4 h-4"
+                  />
                   <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
                     Mantener sesión iniciada
                   </span>
@@ -135,9 +138,13 @@ export default function SignInForm() {
               </div>
 
               <div>
-                <Button className="w-full" size="sm" type="submit" disabled={loading}>
+                <button
+                  className="w-full px-4 py-2 rounded-md bg-brand-500 text-white font-semibold hover:bg-brand-600 transition disabled:opacity-60"
+                  type="submit"
+                  disabled={loading}
+                >
                   {loading ? "Accediendo..." : "Entrar"}
-                </Button>
+                </button>
               </div>
             </div>
           </form>
