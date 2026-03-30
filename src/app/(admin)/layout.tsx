@@ -37,8 +37,14 @@ export default function AdminLayout({
     }
   }, [loading, user, pilot, router]);
 
-  // No mostrar nada mientras no esté autorizado o cargando
-  if (loading || !ready) return null;
+  // Show a loading spinner while verifying authentication
+  if (loading || !ready) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen xl:flex">

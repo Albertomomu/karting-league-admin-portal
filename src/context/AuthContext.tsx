@@ -25,57 +25,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setPilot(null);
-    setSession(null);
-    router.replace('/signin');
+  const fetchPilot = async (userId: string) => {
+    const { data: pilotData, error } = await supabase
+      .from('pilot')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role', 'admin')
+      .single();
+
+    if (!error && pilotData) {
+      setPilot(pilotData);
+    } else {
+      // Not an admin — sign out and redirect
+      await supabase.auth.signOut();
+      setPilot(null);
+      setSession(null);
+      router.replace('/signin');
+    }
   };
 
   useEffect(() => {
-    const getSessionAndPilot = async () => {
-      const { data } = await supabase.auth.getSession();
-      const currentSession = data.session;
+    // Get the initial session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
 
       if (currentSession?.user) {
-        const { data: pilotData, error } = await supabase
-          .from('pilot')
-          .select('*')
-          .eq('user_id', currentSession.user.id)
-          .eq('role', 'admin')
-          .single();
-
-        if (!error && pilotData) {
-          setPilot(pilotData);
-        } else {
-          await handleLogout(); // 👈 si no es admin, fuera
-        }
+        fetchPilot(currentSession.user.id).finally(() => setLoading(false));
+      } else {
+        setLoading(false);
       }
+    });
 
-      setLoading(false);
-    };
-
-    getSessionAndPilot();
-
+    // Listen for auth changes (login, logout, token refresh)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
 
       if (newSession?.user) {
-        const { data, error } = await supabase
-          .from('pilot')
-          .select('*')
-          .eq('user_id', newSession.user.id)
-          .eq('role', 'admin')
-          .single();
-
-        if (!error && data) {
-          setPilot(data);
-        } else {
-          await handleLogout(); // 👈 si no es admin, fuera
-        }
+        fetchPilot(newSession.user.id);
       } else {
         setPilot(null);
       }
