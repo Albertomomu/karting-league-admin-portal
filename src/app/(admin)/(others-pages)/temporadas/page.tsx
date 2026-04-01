@@ -25,6 +25,15 @@ export default function TemporadasPage() {
       });
   }, []);
 
+  const handleDelete = async (id: string) => {
+    const confirm = window.confirm('¿Eliminar esta temporada?');
+    if (!confirm) return;
+    const { error } = await supabase.from('season').delete().eq('id', id);
+    if (!error) {
+      setSeasons((prev) => prev.filter((s) => s.id !== id));
+    }
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">
@@ -58,12 +67,18 @@ export default function TemporadasPage() {
                 <td className="p-3 text-gray-800 dark:text-white">
                   {s.is_active ? '✅' : '—'}
                 </td>
-                <td className="p-3">
+                <td className="p-3 flex gap-2">
                   <button
                     onClick={() => router.push(`/temporadas/${s.id}/editar`)}
                     className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
                     Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(s.id)}
+                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                  >
+                    Eliminar
                   </button>
                 </td>
               </tr>

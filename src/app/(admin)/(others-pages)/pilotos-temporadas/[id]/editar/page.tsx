@@ -26,6 +26,8 @@ export default function EditarPilotoPage() {
 
   const [loading, setLoading] = useState(true);
   const [pilotData, setPilotData] = useState<PilotFormData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [teams, setTeams] = useState<Team[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [leagues, setLeagues] = useState<League[]>([]);
@@ -83,6 +85,8 @@ export default function EditarPilotoPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pilotData) return;
+    setSaving(true);
+    setError(null);
 
     const [{ error: ptsError }, { error: pilotError }] = await Promise.all([
       supabase
@@ -104,7 +108,8 @@ export default function EditarPilotoPage() {
     ]);
 
     if (ptsError || pilotError) {
-      console.error('Error al actualizar:', ptsError || pilotError);
+      setError('Error al guardar los cambios');
+      setSaving(false);
     } else {
       router.push('/pilotos-temporadas');
     }
@@ -240,12 +245,15 @@ export default function EditarPilotoPage() {
           </select>
         </div>
 
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+
         <div className="pt-4">
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            Guardar cambios
+            {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>
       </form>

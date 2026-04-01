@@ -10,6 +10,8 @@ export default function EditarCircuitoPage() {
 
   const [loading, setLoading] = useState(true);
   const [circuit, setCircuit] = useState<Circuit | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchCircuit = async () => {
@@ -33,6 +35,8 @@ export default function EditarCircuitoPage() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
+    setError(null);
 
     const { error } = await supabase
       .from('circuit')
@@ -51,7 +55,8 @@ export default function EditarCircuitoPage() {
     if (!error) {
       router.push('/circuitos');
     } else {
-      console.error('Error al actualizar circuito:', error);
+      setError('Error al guardar los cambios');
+      setSaving(false);
     }
   };
 
@@ -212,12 +217,15 @@ export default function EditarCircuitoPage() {
         }
       />
 
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+
         <div className="pt-4">
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            Guardar cambios
+            {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>
       </form>

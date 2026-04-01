@@ -31,6 +31,15 @@ export default function CircuitosPage() {
     fetchCircuits();
   }, []);
 
+  const handleDelete = async (id: string) => {
+    const confirm = window.confirm('¿Eliminar este circuito?');
+    if (!confirm) return;
+    const { error } = await supabase.from('circuit').delete().eq('id', id);
+    if (!error) {
+      setCircuits((prev) => prev.filter((c) => c.id !== id));
+    }
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
@@ -72,12 +81,18 @@ export default function CircuitosPage() {
                 <td className="p-3 text-gray-700 dark:text-white">{circuit.location}</td>
                 <td className="p-3 text-gray-700 dark:text-white">{circuit.length}</td>
                 <td className="p-3 text-gray-700 dark:text-white">{circuit.turns}</td>
-                <td className="p-3">
+                <td className="p-3 flex gap-2">
                   <button
                     onClick={() => router.push(`/circuitos/${circuit.id}/editar`)}
                     className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
                     Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(circuit.id)}
+                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                  >
+                    Eliminar
                   </button>
                 </td>
               </tr>

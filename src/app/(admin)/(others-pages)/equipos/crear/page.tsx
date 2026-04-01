@@ -5,10 +5,9 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import ImageUpload from '@/components/ui/ImageUpload';
 
-export default function CrearPiloto() {
+export default function CrearEquipo() {
   const [name, setName] = useState('');
-  const [number, setNumber] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
@@ -18,11 +17,10 @@ export default function CrearPiloto() {
     setError(null);
     setSaving(true);
 
-    const { error } = await supabase.from('pilot').insert([
+    const { error } = await supabase.from('team').insert([
       {
         name,
-        number: parseInt(number),
-        avatar_url: avatarUrl,
+        logo_url: logoUrl,
       },
     ]);
 
@@ -30,14 +28,14 @@ export default function CrearPiloto() {
       setError(error.message);
       setSaving(false);
     } else {
-      router.push('/pilotos');
+      router.push('/equipos');
     }
   };
 
   return (
     <div className="p-6 max-w-md mx-auto">
       <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-        Crear Nuevo Piloto
+        Crear Nuevo Equipo
       </h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -52,23 +50,11 @@ export default function CrearPiloto() {
             className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm p-2 dark:bg-gray-800 dark:text-white"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Número
-          </label>
-          <input
-            type="number"
-            value={number}
-            onChange={(e) => setNumber(e.target.value)}
-            required
-            className="mt-1 block w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm p-2 dark:bg-gray-800 dark:text-white"
-          />
-        </div>
         <ImageUpload
-          bucket="pilot-photos"
-          currentUrl={avatarUrl}
-          onUpload={setAvatarUrl}
-          label="Foto del piloto (opcional)"
+          bucket="team-logos"
+          currentUrl={logoUrl}
+          onUpload={setLogoUrl}
+          label="Logo del equipo (opcional)"
         />
         {error && <p className="text-red-600">{error}</p>}
         <button
@@ -76,7 +62,7 @@ export default function CrearPiloto() {
           disabled={saving}
           className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
         >
-          {saving ? 'Creando...' : 'Crear Piloto'}
+          {saving ? 'Creando...' : 'Crear Equipo'}
         </button>
       </form>
     </div>

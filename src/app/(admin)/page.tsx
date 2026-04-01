@@ -64,17 +64,17 @@ export default function Dashboard() {
   useEffect(() => {
     const loadData = async () => {
       const [pilotCount, teamCount, raceCount, lapCount] = await Promise.all([
-        supabase.from('pilot').select('*'),
-        supabase.from('team').select('*'),
-        supabase.from('race').select('*'),
-        supabase.from('lap_time').select('*'),
+        supabase.from('pilot').select('*', { count: 'exact', head: true }),
+        supabase.from('team').select('*', { count: 'exact', head: true }),
+        supabase.from('race').select('*', { count: 'exact', head: true }),
+        supabase.from('lap_time').select('*', { count: 'exact', head: true }),
       ]);
 
       setStats({
-        pilotos: pilotCount.data?.length || 0,
-        equipos: teamCount.data?.length || 0,
-        carreras: raceCount.data?.length || 0,
-        vueltas: lapCount.data?.length || 0,
+        pilotos: pilotCount.count || 0,
+        equipos: teamCount.count || 0,
+        carreras: raceCount.count || 0,
+        vueltas: lapCount.count || 0,
       });
 
       // Pilotos por temporada

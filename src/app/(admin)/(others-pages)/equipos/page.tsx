@@ -106,11 +106,28 @@ export default function EquiposPage() {
     setFiltered(uniqueTeams);
   }, [selectedSeason, selectedLeague, entries]);
 
+  const handleDelete = async (id: string) => {
+    const confirm = window.confirm('¿Eliminar este equipo?');
+    if (!confirm) return;
+    const { error } = await supabase.from('team').delete().eq('id', id);
+    if (!error) {
+      setEntries((prev) => prev.filter((e) => e.team.id !== id));
+    }
+  };
+
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-        Equipos por Temporada y Liga
-      </h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          Equipos por Temporada y Liga
+        </h1>
+        <button
+          onClick={() => router.push('/equipos/crear')}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+        >
+          Añadir Equipo
+        </button>
+      </div>
 
       <div className="flex flex-wrap gap-4 mb-6">
         <select
@@ -173,12 +190,18 @@ export default function EquiposPage() {
                 <td className="p-3 text-gray-900 dark:text-white">{entry.team.name}</td>
                 <td className="p-3 text-gray-700 dark:text-white">{entry.season.name}</td>
                 <td className="p-3 text-gray-700 dark:text-white">{entry.league.name}</td>
-                <td className="p-3">
+                <td className="p-3 flex gap-2">
                   <button
                     onClick={() => router.push(`/equipos/${entry.team.id}/editar`)}
                     className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
                     Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(entry.team.id)}
+                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                  >
+                    Eliminar
                   </button>
                 </td>
               </tr>

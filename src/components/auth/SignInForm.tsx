@@ -8,7 +8,6 @@ import { supabase } from "@/lib/supabase";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [isChecked, setIsChecked] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -117,18 +116,7 @@ export default function SignInForm() {
 
               {error && <p className="text-sm text-red-500">{error}</p>}
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={(e) => setIsChecked(e.target.checked)}
-                    className="accent-brand-500 w-4 h-4"
-                  />
-                  <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
-                    Mantener sesión iniciada
-                  </span>
-                </div>
+              <div className="flex items-center justify-end">
                 <Link
                   href="/reset-password"
                   className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"

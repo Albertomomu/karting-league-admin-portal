@@ -90,6 +90,15 @@ export default function ResultadosPage() {
       });
   }, [selectedRace, selectedSession]);
 
+  const handleDelete = async (id: string) => {
+    const confirm = window.confirm('¿Eliminar este resultado?');
+    if (!confirm) return;
+    const { error } = await supabase.from('race_result').delete().eq('id', id);
+    if (!error) {
+      setResults((prev) => prev.filter((r) => r.id !== id));
+    }
+  };
+
   const filteredLeagues = leagues.filter((l) => l.season_id === selectedSeason);
   const filteredRaces = races.filter((r) => r.league_id === selectedLeague);
 
@@ -217,12 +226,18 @@ export default function ResultadosPage() {
                   <td className="p-3 text-gray-800 dark:text-white">{res.race_position ?? '—'}</td>
                   <td className="p-3 text-gray-800 dark:text-white">{res.best_lap ?? '—'}</td>
                   <td className="p-3 text-gray-800 dark:text-white">{res.points ?? 0}</td>
-                  <td className="p-3">
+                  <td className="p-3 flex gap-2">
                     <button
                       onClick={() => router.push(`/resultados/${res.id}/editar`)}
                       className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
                       Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(res.id)}
+                      className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                      Eliminar
                     </button>
                   </td>
                 </tr>

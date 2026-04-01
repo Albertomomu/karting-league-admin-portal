@@ -16,6 +16,8 @@ export default function EditarTemporadaPage() {
   });
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     supabase
@@ -38,6 +40,8 @@ export default function EditarTemporadaPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
+    setError(null);
 
     const { error } = await supabase
       .from('season')
@@ -51,6 +55,9 @@ export default function EditarTemporadaPage() {
 
     if (!error) {
       router.push('/temporadas');
+    } else {
+      setError('Error al guardar los cambios');
+      setSaving(false);
     }
   };
 
@@ -103,12 +110,15 @@ export default function EditarTemporadaPage() {
           <label className="text-gray-800 dark:text-gray-200">Temporada activa</label>
         </div>
 
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+
         <div className="pt-4">
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            Guardar Cambios
+            {saving ? 'Guardando...' : 'Guardar Cambios'}
           </button>
         </div>
       </form>

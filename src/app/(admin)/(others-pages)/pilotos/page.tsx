@@ -19,6 +19,15 @@ export default function PilotsPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const router = useRouter();
 
+  const handleDelete = async (id: string) => {
+    const confirm = window.confirm('¿Eliminar este piloto?');
+    if (!confirm) return;
+    const { error } = await supabase.from('pilot').delete().eq('id', id);
+    if (!error) {
+      setPilots((prev) => prev.filter((p) => p.id !== id));
+    }
+  };
+
   useEffect(() => {
     const fetchPilots = async () => {
       const { data, error } = await supabase
@@ -107,12 +116,18 @@ export default function PilotsPage() {
                 <td className="p-3 text-gray-800 dark:text-white">
                   {new Date(pilot.created_at).toLocaleDateString()}
                 </td>
-                <td className="p-3">
+                <td className="p-3 flex gap-2">
                   <button
                     onClick={() => router.push(`/pilotos/${pilot.id}/editar`)}
                     className="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
                     Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(pilot.id)}
+                    className="px-2 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                  >
+                    Eliminar
                   </button>
                 </td>
               </tr>

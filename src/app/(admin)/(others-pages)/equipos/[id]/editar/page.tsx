@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import ImageUpload from '@/components/ui/ImageUpload';
 
 export default function EditarEquipoPage() {
   const { id } = useParams();
@@ -10,6 +11,8 @@ export default function EditarEquipoPage() {
 
   const [team, setTeam] = useState<{ name: string; logo_url: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -33,6 +36,8 @@ export default function EditarEquipoPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!team) return;
+    setSaving(true);
+    setError(null);
 
     const { error } = await supabase
       .from('team')
@@ -43,7 +48,8 @@ export default function EditarEquipoPage() {
       .eq('id', id);
 
     if (error) {
-      console.error('Error al actualizar equipo', error);
+      setError('Error al guardar los cambios');
+      setSaving(false);
     } else {
       router.push('/equipos');
     }
@@ -73,27 +79,27 @@ export default function EditarEquipoPage() {
           />
         </div>
 
-        <div>
-          <label className="block mb-1 text-gray-800 dark:text-gray-200">Logo (URL)</label>
-          <input
-            type="text"
-            value={team?.logo_url || ''}
-            onChange={e =>
-              setTeam({
-                name: team?.name ?? '',
-                logo_url: e.target.value,
-              })
-            }
-            className="w-full px-4 py-2 border rounded bg-white dark:bg-gray-800 dark:text-white"
-          />
-        </div>
+        <ImageUpload
+          bucket="team-logos"
+          currentUrl={team?.logo_url ?? null}
+          onUpload={(url) =>
+            setTeam({
+              name: team?.name ?? '',
+              logo_url: url,
+            })
+          }
+          label="Logo del equipo"
+        />
+
+        {error && <p className="text-red-500 text-sm">{error}</p>}
 
         <div className="pt-4">
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            Guardar cambios
+            {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>
       </form>

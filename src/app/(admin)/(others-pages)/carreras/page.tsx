@@ -86,6 +86,15 @@ export default function CarrerasPage() {
     setFiltered(result);
   }, [selectedSeason, selectedLeague, races]);
 
+  const handleDelete = async (id: string) => {
+    const confirm = window.confirm('¿Eliminar esta carrera?');
+    if (!confirm) return;
+    const { error } = await supabase.from('race').delete().eq('id', id);
+    if (!error) {
+      setRaces((prev) => prev.filter((r) => r.id !== id));
+    }
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -141,12 +150,18 @@ export default function CarrerasPage() {
                 <td className="p-3 text-gray-700 dark:text-white">{new Date(race.date).toLocaleDateString()}</td>
                 <td className="p-3 text-gray-700 dark:text-white">{race.circuit?.name || '—'}</td>
                 <td className="p-3 text-gray-700 dark:text-white">{race.league?.name || '—'}</td>
-                <td className="p-3">
+                <td className="p-3 flex gap-2">
                   <button
                     onClick={() => router.push(`/carreras/${race.id}/editar`)}
                     className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
                     Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(race.id)}
+                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                  >
+                    Eliminar
                   </button>
                 </td>
               </tr>

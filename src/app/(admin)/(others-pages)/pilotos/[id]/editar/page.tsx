@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import ImageUpload from '@/components/ui/ImageUpload';
 
 export default function EditarPilotoPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function EditarPilotoPage() {
   const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchPilot = async () => {
@@ -44,6 +46,7 @@ export default function EditarPilotoPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSaving(true);
 
     const { error } = await supabase
       .from('pilot')
@@ -58,7 +61,7 @@ export default function EditarPilotoPage() {
 
     if (error) {
       setError('Error al guardar los cambios.');
-      console.error(error);
+      setSaving(false);
     } else {
       router.push('/pilotos');
     }
@@ -90,15 +93,12 @@ export default function EditarPilotoPage() {
             className="w-full border px-3 py-2 rounded"
           />
         </div>
-        <div>
-          <label className="block mb-1 font-medium">Avatar URL</label>
-          <input
-            type="text"
-            value={avatarUrl}
-            onChange={(e) => setAvatarUrl(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-          />
-        </div>
+        <ImageUpload
+          bucket="pilot-photos"
+          currentUrl={avatarUrl || null}
+          onUpload={(url) => setAvatarUrl(url || '')}
+          label="Foto del piloto"
+        />
         <div>
           <label className="block mb-1 font-medium">Rol</label>
           <input
@@ -121,9 +121,10 @@ export default function EditarPilotoPage() {
         <div className="flex gap-2">
           <button
             type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            disabled={saving}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            Guardar cambios
+            {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
           <button
             type="button"

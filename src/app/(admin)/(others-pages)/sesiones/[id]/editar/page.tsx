@@ -10,6 +10,8 @@ export default function EditarSesionPage() {
 
   const [sessionData, setSessionData] = useState({ name: '' });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     supabase
@@ -25,6 +27,8 @@ export default function EditarSesionPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
+    setError(null);
 
     const { error } = await supabase
       .from('session')
@@ -33,6 +37,9 @@ export default function EditarSesionPage() {
 
     if (!error) {
       router.push('/sesiones');
+    } else {
+      setError('Error al guardar los cambios');
+      setSaving(false);
     }
   };
 
@@ -55,12 +62,15 @@ export default function EditarSesionPage() {
           />
         </div>
 
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+
         <div className="pt-4">
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            Guardar Cambios
+            {saving ? 'Guardando...' : 'Guardar Cambios'}
           </button>
         </div>
       </form>

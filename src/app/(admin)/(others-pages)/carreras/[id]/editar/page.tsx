@@ -36,6 +36,8 @@ export default function EditarCarreraPage() {
   const [circuits, setCircuits] = useState<{ id: string; name: string }[]>([]);
   const [leagues, setLeagues] = useState<League[]>([]);
   const [seasons, setSeasons] = useState<{ id: string; name: string }[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,6 +82,8 @@ export default function EditarCarreraPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!race) return;
+    setSaving(true);
+    setError(null);
 
     const { error } = await supabase
       .from('race')
@@ -92,7 +96,8 @@ export default function EditarCarreraPage() {
       .eq('id', id);
 
     if (error) {
-      console.error('Error al actualizar carrera:', error);
+      setError('Error al guardar los cambios');
+      setSaving(false);
     } else {
       router.push('/carreras');
     }
@@ -178,12 +183,15 @@ export default function EditarCarreraPage() {
           </select>
         </div>
 
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+
         <div className="pt-4">
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            Guardar cambios
+            {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>
       </form>
