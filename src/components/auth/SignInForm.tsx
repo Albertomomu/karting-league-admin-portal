@@ -2,7 +2,6 @@
 
 import { EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -12,8 +11,6 @@ export default function SignInForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,8 +52,8 @@ export default function SignInForm() {
       return;
     }
 
-    // 4. Si todo OK, redirigir al panel
-    router.push("/");
+    // 4. Si todo OK, redirigir al panel (hard navigation para que las cookies se envíen correctamente)
+    window.location.href = "/";
   };
 
   return (
