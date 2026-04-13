@@ -24,6 +24,8 @@
     "apexcharts": "^4.3.0",
     "autoprefixer": "^10.4.20",
     "flatpickr": "^4.6.13",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.511.0",
     "next": "^15.3.3",
     "react": "^19.0.0",

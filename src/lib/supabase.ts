@@ -58,6 +58,8 @@ export type PilotTeamSeason = {
   team_id: string | null;       // uuid nullable FK
   season_id: string | null;     // uuid nullable FK
   league_id: string | null;     // uuid nullable FK
+  is_wildkart: boolean;         // boolean DEFAULT false
+  license_points: number;       // integer DEFAULT 10
   created_at: string | null;    // timestamp with time zone DEFAULT now()
   pilot?: Pilot;
   team?: Team;
@@ -84,6 +86,9 @@ export type RaceResult = {
   race_position: number | null; // integer nullable
   best_lap: string | null;      // text nullable
   points: number | null;        // smallint nullable
+  laps_completed: number | null; // integer nullable
+  observations: string | null;  // text nullable (DNF, DSQ, DNS, texto libre)
+  status: string | null;        // text DEFAULT 'classified' ('classified'|'dnf'|'dsq'|'dns')
   created_at: string | null;    // timestamp with time zone DEFAULT now()
   pilot?: Pilot;
   race?: Race;
@@ -111,6 +116,17 @@ export type Team = {
   name: string;                 // text NOT NULL
   logo_url: string | null;      // text nullable
   created_at: string | null;    // timestamp with time zone DEFAULT now()
+};
+
+export type RaceGrid = {
+  id: string;                   // uuid
+  race_id: string;              // uuid NOT NULL FK
+  session_id: string;           // uuid NOT NULL FK
+  pilot_id: string | null;      // uuid nullable FK
+  grid_position: number;        // integer NOT NULL
+  created_at: string | null;    // timestamp with time zone DEFAULT now()
+  pilot?: Pilot;
+  session?: Session;
 };
 
 // Optional frontend-only types
