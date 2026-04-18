@@ -5,6 +5,7 @@ import { supabase, Season, League, Race, RaceResult, RaceGrid, Pilot, Circuit } 
 import { generateClassificationPDF } from '@/lib/pdf/generateClassificationPDF';
 import { generateGridPDF } from '@/lib/pdf/generateGridPDF';
 import { generateResultsPDF, generateCombinedResultsPDF } from '@/lib/pdf/generateResultsPDF';
+import { generatePilotStandingsPDF, generateTeamStandingsPDF } from '@/lib/pdf/generateStandingsPDF';
 
 type RaceWithCircuit = Race & { circuit: Circuit };
 
@@ -218,6 +219,154 @@ export default function PDFsPage() {
     setGenerating('');
   };
 
+  const handlePilotStandingsPDF = async () => {
+    if (!selectedSeason || !selectedLeague) return;
+    setGenerating('pilot_standings');
+
+    const season = seasons.find((s) => s.id === selectedSeason);
+    const league = leagueDetail;
+    if (!season || !league) return;
+
+    // Get all races for this league
+    const raceIds = filteredRaces.map((r) => r.id);
+    if (raceIds.length === 0) {
+      alert('No hay carreras para esta liga.');
+      setGenerating('');
+      return;
+    }
+
+    // Get all results with pilot and team info
+    const { data: results } = await supabase
+      .from('race_result')
+      .select('points, pilot_id, pilot:pilot_id (id, name)')
+      .in('race_id', raceIds)
+      .not('points', 'is', null);
+
+    // Get pilot-team mapping for this league
+    const { data: ptsData } = await supabase
+      .from('pilot_team_season')
+      .select('pilot_id, team:team_id (name)')
+      .eq('league_id', selectedLeague)
+      .eq('is_wildkart', false);
+
+    const pilotTeamMap = new Map<string, string>();
+    for (const pts of ptsData || []) {
+      if (pts.pilot_id && pts.team) {
+        pilotTeamMap.set(pts.pilot_id, (pts.team as unknown as { name: string }).name);
+      }
+    }
+
+    // Accumulate points per pilot
+    const accumulated = new Map<string, { pilot_name: string; team_name: string; total_points: number }>();
+    for (const r of results || []) {
+      const pilot = r.pilot as unknown as { id: string; name: string } | null;
+      if (!pilot || !r.points) continue;
+      const existing = accumulated.get(pilot.id);
+      if (existing) {
+        existing.total_points += r.points;
+      } else {
+        accumulated.set(pilot.id, {
+          pilot_name: pilot.name,
+          team_name: pilotTeamMap.get(pilot.id) || '-',
+          total_points: r.points,
+        });
+      }
+    }
+
+    const entries = Array.from(accumulated.values())
+      .sort((a, b) => b.total_points - a.total_points)
+      .map((e, i) => ({ position: i + 1, ...e }));
+
+    if (entries.length === 0) {
+      alert('No hay puntos registrados para esta liga.');
+      setGenerating('');
+      return;
+    }
+
+    generatePilotStandingsPDF({ seasonName: season.name, leagueName: league.name }, entries);
+    setGenerating('');
+  };
+
+  const handleTeamStandingsPDF = async () => {
+    if (!selectedSeason || !selectedLeague) return;
+    setGenerating('team_standings');
+
+    const season = seasons.find((s) => s.id === selectedSeason);
+    const league = leagueDetail;
+    if (!season || !league) return;
+
+    const raceIds = filteredRaces.map((r) => r.id);
+    if (raceIds.length === 0) {
+      alert('No hay carreras para esta liga.');
+      setGenerating('');
+      return;
+    }
+
+    // Get all results
+    const { data: results } = await supabase
+      .from('race_result')
+      .select('points, pilot_id')
+      .in('race_id', raceIds)
+      .not('points', 'is', null);
+
+    // Get pilot-team mapping (non-wildkart + wildkart)
+    const { data: ptsData } = await supabase
+      .from('pilot_team_season')
+      .select('pilot_id, team:team_id (id, name), pilot:pilot_id (name)')
+      .eq('league_id', selectedLeague);
+
+    type PTSEntry = { pilot_id: string; team: { id: string; name: string }; pilot: { name: string } };
+
+    const pilotTeamMap = new Map<string, { team_id: string; team_name: string; pilot_name: string }>();
+    for (const pts of (ptsData || []) as unknown as PTSEntry[]) {
+      if (pts.pilot_id && pts.team && pts.pilot) {
+        pilotTeamMap.set(pts.pilot_id, {
+          team_id: pts.team.id,
+          team_name: pts.team.name,
+          pilot_name: pts.pilot.name,
+        });
+      }
+    }
+
+    // Accumulate points per team
+    const teamAcc = new Map<string, { team_name: string; total_points: number; pilots: Set<string> }>();
+    for (const r of results || []) {
+      if (!r.pilot_id || !r.points) continue;
+      const mapping = pilotTeamMap.get(r.pilot_id);
+      if (!mapping) continue;
+
+      const existing = teamAcc.get(mapping.team_id);
+      if (existing) {
+        existing.total_points += r.points;
+        existing.pilots.add(mapping.pilot_name);
+      } else {
+        teamAcc.set(mapping.team_id, {
+          team_name: mapping.team_name,
+          total_points: r.points,
+          pilots: new Set([mapping.pilot_name]),
+        });
+      }
+    }
+
+    const entries = Array.from(teamAcc.values())
+      .sort((a, b) => b.total_points - a.total_points)
+      .map((e, i) => ({
+        position: i + 1,
+        team_name: e.team_name,
+        pilots: Array.from(e.pilots),
+        total_points: e.total_points,
+      }));
+
+    if (entries.length === 0) {
+      alert('No hay puntos registrados para esta liga.');
+      setGenerating('');
+      return;
+    }
+
+    generateTeamStandingsPDF({ seasonName: season.name, leagueName: league.name }, entries);
+    setGenerating('');
+  };
+
   const isDisabled = !selectedRace;
 
   return (
@@ -268,9 +417,53 @@ export default function PDFsPage() {
         </select>
       </div>
 
+      {/* Clasificaciones generales - solo necesitan temporada + liga */}
+      {selectedSeason && selectedLeague && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Clasificaciones Generales
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Clasificación General de Pilotos
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Puntos acumulados de todos los pilotos en la temporada.
+              </p>
+              <button
+                onClick={handlePilotStandingsPDF}
+                disabled={generating === 'pilot_standings'}
+                className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50"
+              >
+                {generating === 'pilot_standings' ? 'Generando...' : 'Descargar PDF'}
+              </button>
+            </div>
+
+            <div className="p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Clasificación General de Equipos
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Puntos acumulados de todos los equipos en la temporada.
+              </p>
+              <button
+                onClick={handleTeamStandingsPDF}
+                disabled={generating === 'team_standings'}
+                className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50"
+              >
+                {generating === 'team_standings' ? 'Generando...' : 'Descargar PDF'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {!selectedRace ? (
         <p className="text-gray-700 dark:text-gray-300">
-          Selecciona una carrera para generar documentos PDF.
+          {selectedSeason && selectedLeague
+            ? 'Selecciona una carrera para generar documentos PDF de carrera.'
+            : 'Selecciona una temporada y liga para ver las opciones de PDF.'}
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
