@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 type GridEntry = {
   grid_position: number;
   pilot_name: string;
+  best_lap?: string;
 };
 
 type GridPDFData = {
@@ -65,19 +66,27 @@ function drawCell(
   doc.setLineWidth(0.3);
   doc.line(x + BADGE_W + 2, y + 3, x + BADGE_W + 2, y + CELL_H - 3);
 
-  // Nombre del piloto
+  // Nombre del piloto + tiempo
+  const nameX = x + BADGE_W + 6;
+  const nameMaxW = CELL_W - BADGE_W - 8;
+  const hasTime = !!entry.best_lap;
+
+  let name = entry.pilot_name;
+  while (doc.getTextWidth(name) > nameMaxW && name.length > 4) name = name.slice(0, -1);
+  if (name !== entry.pilot_name) name = name.slice(0, -1) + '.';
+
+  const nameY = hasTime ? y + CELL_H / 2 - 1 : y + CELL_H / 2 + 1.5;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(30, 30, 30);
-  const nameX = x + BADGE_W + 6;
-  const nameMaxW = CELL_W - BADGE_W - 8;
-  let name = entry.pilot_name;
-  // Truncar si no cabe
-  while (doc.getTextWidth(name) > nameMaxW && name.length > 4) {
-    name = name.slice(0, -1);
+  doc.text(name, nameX, nameY);
+
+  if (hasTime) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(entry.best_lap!, nameX, nameY + 5);
   }
-  if (name !== entry.pilot_name) name = name.slice(0, -1) + '.';
-  doc.text(name, nameX, y + CELL_H / 2 + 1.5);
 
   // Badge "POLE" para P1
   if (entry.grid_position === 1) {

@@ -140,24 +140,49 @@ export default function PDFsPage() {
     if (!selectedRace || !sessionId) return;
     setGenerating(session);
 
-    const { data } = await supabase
-      .from('race_grid')
-      .select('grid_position, pilot:pilot_id (id, name, number)')
-      .eq('race_id', selectedRace)
-      .eq('session_id', sessionId)
-      .order('grid_position', { ascending: true })
-      .overrideTypes<GridWithPilot[]>();
+    // Fetch grid + tiempos de ambas clasificaciones en paralelo
+    const [{ data: gridData }, { data: q1Data }, { data: q2Data }] = await Promise.all([
+      supabase
+        .from('race_grid')
+        .select('grid_position, pilot:pilot_id (id, name, number)')
+        .eq('race_id', selectedRace)
+        .eq('session_id', sessionId)
+        .order('grid_position', { ascending: true })
+        .overrideTypes<GridWithPilot[]>(),
+      sessionIds.clasificacion1
+        ? supabase.from('race_result').select('pilot_id, best_lap').eq('race_id', selectedRace).eq('session_id', sessionIds.clasificacion1).overrideTypes<RaceResult[]>()
+        : Promise.resolve({ data: [] as RaceResult[] }),
+      sessionIds.clasificacion2
+        ? supabase.from('race_result').select('pilot_id, best_lap').eq('race_id', selectedRace).eq('session_id', sessionIds.clasificacion2).overrideTypes<RaceResult[]>()
+        : Promise.resolve({ data: [] as RaceResult[] }),
+    ]);
 
-    const entries = (data || []).map((g) => ({
-      grid_position: g.grid_position,
-      pilot_name: g.pilot?.name || '',
-    }));
-
-    if (entries.length === 0) {
+    if (!gridData || gridData.length === 0) {
       alert('No hay parrilla generada. Ve a Clasificación primero.');
       setGenerating('');
       return;
     }
+
+    // Mejor tiempo por piloto entre ambas tandas
+    const parseMs = (t: string) => {
+      const [minSec, ms] = t.split('.');
+      const [min, sec] = minSec.split(':').map(Number);
+      return (min * 60 + sec) * 1000 + Number(ms);
+    };
+    const bestLapMap = new Map<string, string>();
+    for (const r of [...(q1Data || []), ...(q2Data || [])]) {
+      if (!r.pilot_id || !r.best_lap) continue;
+      const existing = bestLapMap.get(r.pilot_id);
+      if (!existing || parseMs(r.best_lap) < parseMs(existing)) {
+        bestLapMap.set(r.pilot_id, r.best_lap);
+      }
+    }
+
+    const entries = gridData.map((g) => ({
+      grid_position: g.grid_position,
+      pilot_name: g.pilot?.name || '',
+      best_lap: bestLapMap.get((g.pilot as unknown as { id: string })?.id || '') || undefined,
+    }));
 
     const sessionName = session === 'carrera1' ? 'CARRERA I' : 'CARRERA II';
     generateGridPDF({
