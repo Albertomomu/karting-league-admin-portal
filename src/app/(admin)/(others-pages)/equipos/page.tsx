@@ -63,12 +63,15 @@ export default function EquiposPage() {
         return;
       }
 
-      setEntries(data as Entry[]);
+      const validEntries = (data as Entry[]).filter(
+        (d) => d.team && d.season && d.league
+      );
+      setEntries(validEntries);
 
       const tempSeasons = Array.from(
-        new Map(data.map((d) => [d.season?.id, d.season])).values()
+        new Map(validEntries.map((d) => [d.season.id, d.season])).values()
       );
-      setSeasons(tempSeasons as Season[]);
+      setSeasons(tempSeasons);
     };
 
     fetchData();

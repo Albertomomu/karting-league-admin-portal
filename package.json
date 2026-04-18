@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed:t4": "npx tsx scripts/seed-t4.ts"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.15",

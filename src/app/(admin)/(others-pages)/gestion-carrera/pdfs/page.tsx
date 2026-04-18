@@ -93,12 +93,13 @@ export default function PDFsPage() {
       .order('race_position', { ascending: true })
       .overrideTypes<ResultWithPilot[]>();
 
-    const entries = (data || []).map((r) => ({
-      position: r.race_position,
-      pilot_name: r.pilot?.name || '',
-      pilot_number: r.pilot?.number || 0,
-      best_lap: r.best_lap || '',
-    }));
+    const entries = (data || [])
+      .filter((r) => r.best_lap)
+      .map((r) => ({
+        position: r.race_position,
+        pilot_name: r.pilot?.name || '',
+        best_lap: r.best_lap || '',
+      }));
 
     generateClassificationPDF({ ...getRaceInfo(), entries });
     setGenerating('');
@@ -120,7 +121,6 @@ export default function PDFsPage() {
     const entries = (data || []).map((g) => ({
       grid_position: g.grid_position,
       pilot_name: g.pilot?.name || '',
-      pilot_number: g.pilot?.number || 0,
     }));
 
     if (entries.length === 0) {
@@ -155,7 +155,6 @@ export default function PDFsPage() {
     const entries = (data || []).map((r) => ({
       position: r.race_position,
       pilot_name: r.pilot?.name || '',
-      pilot_number: r.pilot?.number || 0,
       best_lap: r.best_lap,
       laps_completed: r.laps_completed,
       status: r.status,
@@ -193,7 +192,6 @@ export default function PDFsPage() {
       return (data || []).map((r) => ({
         position: r.race_position,
         pilot_name: r.pilot?.name || '',
-        pilot_number: r.pilot?.number || 0,
         best_lap: r.best_lap,
         laps_completed: r.laps_completed,
         status: r.status,

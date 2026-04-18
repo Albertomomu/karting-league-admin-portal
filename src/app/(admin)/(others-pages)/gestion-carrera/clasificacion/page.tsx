@@ -196,6 +196,7 @@ export default function ClasificacionPage() {
 
       // Generar parrillas
       if (race1SessionId && race2SessionId) {
+        // Solo pilotos con tiempo entran en la parrilla
         const qualifyingData = sorted
           .filter((r) => r.best_lap)
           .map((r) => ({
@@ -205,18 +206,7 @@ export default function ClasificacionPage() {
             best_lap: r.best_lap,
           }));
 
-        // Añadir pilotos sin tiempo al final
-        const dnsData = sorted
-          .filter((r) => !r.best_lap)
-          .map((r) => ({
-            pilot_id: r.pilot.id,
-            pilot_name: r.pilot.name,
-            pilot_number: r.pilot.number,
-            best_lap: null,
-          }));
-
-        const allData = [...qualifyingData, ...dnsData];
-        const grid1 = computeRace1Grid(allData);
+        const grid1 = computeRace1Grid(qualifyingData);
         const grid2 = computeRace2Grid(grid1);
 
         // Eliminar parrillas existentes para esta carrera
@@ -335,7 +325,6 @@ export default function ClasificacionPage() {
                 <tr>
                   <th className="p-3 w-16">Pos</th>
                   <th className="p-3">Piloto</th>
-                  <th className="p-3 w-20">Kart</th>
                   <th className="p-3 w-36">Tiempo</th>
                   <th className="p-3 w-28">Diferencia</th>
                   <th className="p-3 w-20">Estado</th>
@@ -370,9 +359,6 @@ export default function ClasificacionPage() {
                           </div>
                         )}
                         {row.pilot.name}
-                      </td>
-                      <td className="p-3 text-gray-800 dark:text-white">
-                        {row.pilot.number}
                       </td>
                       <td className="p-3">
                         <input

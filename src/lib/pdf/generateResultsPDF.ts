@@ -4,7 +4,6 @@ import autoTable from 'jspdf-autotable';
 type ResultEntry = {
   position: number | null;
   pilot_name: string;
-  pilot_number: number;
   best_lap: string | null;
   laps_completed: number | null;
   status: string | null;
@@ -47,7 +46,6 @@ export function generateResultsPDF(data: ResultsPDFData) {
   const tableData = data.entries.map((entry) => [
     entry.position?.toString() || '-',
     entry.pilot_name,
-    entry.pilot_number.toString(),
     entry.best_lap || '-',
     entry.laps_completed?.toString() || '-',
     STATUS_LABELS[entry.status || 'classified'] || entry.status || '-',
@@ -56,22 +54,21 @@ export function generateResultsPDF(data: ResultsPDFData) {
 
   autoTable(doc, {
     startY: 45,
-    head: [['Pos', 'Piloto', 'Kart', 'Mejor Vuelta', 'Vueltas', 'Estado', 'Puntos']],
+    head: [['Pos', 'Piloto', 'Mejor Vuelta', 'Vueltas', 'Estado', 'Puntos']],
     body: tableData,
     styles: { fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
       0: { halign: 'center', cellWidth: 12 },
-      2: { halign: 'center', cellWidth: 15 },
-      3: { halign: 'center', cellWidth: 28 },
+      2: { halign: 'center', cellWidth: 28 },
+      3: { halign: 'center', cellWidth: 18 },
       4: { halign: 'center', cellWidth: 18 },
       5: { halign: 'center', cellWidth: 18 },
-      6: { halign: 'center', cellWidth: 18 },
     },
     didParseCell: (data) => {
       // Colorear filas según status
-      if (data.section === 'body' && data.column.index === 5) {
+      if (data.section === 'body' && data.column.index === 4) {
         const val = data.cell.raw as string;
         if (val === 'DNF') data.cell.styles.textColor = [220, 50, 50];
         if (val === 'DSQ') data.cell.styles.textColor = [100, 100, 100];
@@ -119,7 +116,6 @@ export function generateCombinedResultsPDF(
   const table1Data = race1.entries.map((entry) => [
     entry.position?.toString() || '-',
     entry.pilot_name,
-    entry.pilot_number.toString(),
     entry.best_lap || '-',
     STATUS_LABELS[entry.status || 'classified'] || '-',
     entry.points?.toString() || '-',
@@ -127,17 +123,16 @@ export function generateCombinedResultsPDF(
 
   autoTable(doc, {
     startY: 55,
-    head: [['Pos', 'Piloto', 'Kart', 'Mejor Vuelta', 'Estado', 'Puntos']],
+    head: [['Pos', 'Piloto', 'Mejor Vuelta', 'Estado', 'Puntos']],
     body: table1Data,
     styles: { fontSize: 9, cellPadding: 2 },
     headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
       0: { halign: 'center', cellWidth: 12 },
-      2: { halign: 'center', cellWidth: 15 },
-      3: { halign: 'center', cellWidth: 28 },
+      2: { halign: 'center', cellWidth: 28 },
+      3: { halign: 'center', cellWidth: 18 },
       4: { halign: 'center', cellWidth: 18 },
-      5: { halign: 'center', cellWidth: 18 },
     },
   });
 
@@ -173,7 +168,6 @@ function addResultsTable(doc: jsPDF, data: ResultsPDFData, startY: number) {
   const tableData = data.entries.map((entry) => [
     entry.position?.toString() || '-',
     entry.pilot_name,
-    entry.pilot_number.toString(),
     entry.best_lap || '-',
     STATUS_LABELS[entry.status || 'classified'] || '-',
     entry.points?.toString() || '-',
@@ -181,17 +175,16 @@ function addResultsTable(doc: jsPDF, data: ResultsPDFData, startY: number) {
 
   autoTable(doc, {
     startY,
-    head: [['Pos', 'Piloto', 'Kart', 'Mejor Vuelta', 'Estado', 'Puntos']],
+    head: [['Pos', 'Piloto', 'Mejor Vuelta', 'Estado', 'Puntos']],
     body: tableData,
     styles: { fontSize: 9, cellPadding: 2 },
     headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
       0: { halign: 'center', cellWidth: 12 },
-      2: { halign: 'center', cellWidth: 15 },
-      3: { halign: 'center', cellWidth: 28 },
+      2: { halign: 'center', cellWidth: 28 },
+      3: { halign: 'center', cellWidth: 18 },
       4: { halign: 'center', cellWidth: 18 },
-      5: { halign: 'center', cellWidth: 18 },
     },
   });
 }

@@ -4,7 +4,6 @@ import autoTable from 'jspdf-autotable';
 type GridEntry = {
   grid_position: number;
   pilot_name: string;
-  pilot_number: number;
 };
 
 type GridPDFData = {
@@ -91,18 +90,17 @@ export function generateGridPDF(data: GridPDFData) {
     return [
       entry.grid_position.toString(),
       entry.pilot_name,
-      entry.pilot_number.toString(),
       inverted ? 'Invertido' : '',
     ];
   });
 
   const headers = data.invertedTopN
-    ? [['Pos', 'Piloto', 'Kart', 'Estado']]
-    : [['Pos', 'Piloto', 'Kart']];
+    ? [['Pos', 'Piloto', 'Estado']]
+    : [['Pos', 'Piloto']];
 
   const body = data.invertedTopN
     ? tableData
-    : tableData.map((row) => row.slice(0, 3));
+    : tableData.map((row) => row.slice(0, 2));
 
   autoTable(doc, {
     startY: y + 5,
@@ -113,7 +111,6 @@ export function generateGridPDF(data: GridPDFData) {
     alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
       0: { halign: 'center', cellWidth: 15 },
-      2: { halign: 'center', cellWidth: 20 },
     },
   });
 
@@ -154,5 +151,5 @@ function drawGridCell(
   doc.text(`P${entry.grid_position}`, x + 3, y + h / 2 + 1);
 
   doc.setFont('helvetica', 'normal');
-  doc.text(`${entry.pilot_name}  #${entry.pilot_number}`, x + 18, y + h / 2 + 1);
+  doc.text(entry.pilot_name, x + 18, y + h / 2 + 1);
 }

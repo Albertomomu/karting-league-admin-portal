@@ -3,7 +3,6 @@
 type GridEntry = {
   grid_position: number;
   pilot_name: string;
-  pilot_number: number;
 };
 
 interface GridVisualizerProps {
@@ -69,7 +68,6 @@ export default function GridVisualizer({ entries, title, invertedTopN = 0 }: Gri
             <tr>
               <th className="p-3 w-20">Pos.</th>
               <th className="p-3">Piloto</th>
-              <th className="p-3 w-20">Kart</th>
               {invertedTopN > 0 && <th className="p-3 w-24">Invertido</th>}
             </tr>
           </thead>
@@ -87,7 +85,6 @@ export default function GridVisualizer({ entries, title, invertedTopN = 0 }: Gri
                     {entry.grid_position}
                   </td>
                   <td className="p-3 text-gray-800 dark:text-white">{entry.pilot_name}</td>
-                  <td className="p-3 text-gray-800 dark:text-white">{entry.pilot_number}</td>
                   {invertedTopN > 0 && (
                     <td className="p-3">
                       {isInverted && (
@@ -119,7 +116,6 @@ function GridCell({ entry, isInverted }: { entry: GridEntry; isInverted: boolean
       <span className="font-bold text-gray-800 dark:text-white">P{entry.grid_position}</span>
       <span className="mx-1 text-gray-400">|</span>
       <span className="text-gray-700 dark:text-gray-300">{entry.pilot_name}</span>
-      <span className="ml-1 text-gray-400 text-xs">#{entry.pilot_number}</span>
     </div>
   );
 }

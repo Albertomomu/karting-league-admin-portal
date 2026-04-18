@@ -79,7 +79,6 @@ export default function ParrillasPage() {
     grid.map((g) => ({
       grid_position: g.grid_position,
       pilot_name: g.pilot?.name || 'Desconocido',
-      pilot_number: g.pilot?.number || 0,
     }));
 
   return (

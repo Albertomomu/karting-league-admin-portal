@@ -48,21 +48,45 @@ export default function ResultadosCarreraPage() {
     supabase.from('race').select('id, name, league_id').then(({ data }) => setRaces(data as Race[] || []));
   }, []);
 
-  // Cargar pilotos al seleccionar liga
+  // Cargar pilotos de la parrilla de la carrera seleccionada
   useEffect(() => {
-    if (!selectedLeague) {
+    if (!selectedRace) {
       setPilots([]);
       return;
     }
-    supabase
-      .from('pilot_team_season')
-      .select('pilot:pilot_id (id, name, number, avatar_url)')
-      .eq('league_id', selectedLeague)
-      .overrideTypes<PilotTeamSeason[]>()
-      .then(({ data }) => {
-        setPilots((data as PilotTeamSeason[] || []).map((pts) => pts.pilot));
-      });
-  }, [selectedLeague]);
+    const fetchRacePilots = async () => {
+      // Cargar pilotos que tienen parrilla en esta carrera (cualquier sesión)
+      const { data: gridData } = await supabase
+        .from('race_grid')
+        .select('pilot:pilot_id (id, name, number, avatar_url)')
+        .eq('race_id', selectedRace)
+        .order('grid_position', { ascending: true });
+
+      if (gridData && gridData.length > 0) {
+        // Deduplicar pilotos (aparecen en C1 y C2)
+        const seen = new Set<string>();
+        const uniquePilots: Pilot[] = [];
+        for (const g of gridData as unknown as PilotTeamSeason[]) {
+          if (g.pilot && !seen.has(g.pilot.id)) {
+            seen.add(g.pilot.id);
+            uniquePilots.push(g.pilot);
+          }
+        }
+        setPilots(uniquePilots);
+      } else {
+        // Fallback: cargar todos los pilotos de la liga si no hay parrilla
+        if (selectedLeague) {
+          const { data } = await supabase
+            .from('pilot_team_season')
+            .select('pilot:pilot_id (id, name, number, avatar_url)')
+            .eq('league_id', selectedLeague)
+            .overrideTypes<PilotTeamSeason[]>();
+          setPilots((data as PilotTeamSeason[] || []).map((pts) => pts.pilot));
+        }
+      }
+    };
+    fetchRacePilots();
+  }, [selectedRace, selectedLeague]);
 
   // Cargar sesiones (solo Carrera I y Carrera II)
   useEffect(() => {
@@ -315,7 +339,6 @@ export default function ResultadosCarreraPage() {
                         </div>
                       )}
                       <span>{res.pilot.name}</span>
-                      <span className="text-gray-400 text-xs">#{res.pilot.number}</span>
                     </td>
                     <td className="p-3">
                       <input

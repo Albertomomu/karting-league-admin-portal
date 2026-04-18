@@ -5,7 +5,6 @@ import { parseTimeToMs, formatGap } from '@/lib/grid-utils';
 type ClassificationEntry = {
   position: number | null;
   pilot_name: string;
-  pilot_number: number;
   best_lap: string;
 };
 
@@ -45,7 +44,6 @@ export function generateClassificationPDF(data: ClassificationPDFData) {
     return [
       entry.position?.toString() || '-',
       entry.pilot_name,
-      entry.pilot_number.toString(),
       entry.best_lap || 'DNS',
       gap,
     ];
@@ -53,16 +51,15 @@ export function generateClassificationPDF(data: ClassificationPDFData) {
 
   autoTable(doc, {
     startY: 45,
-    head: [['Pos', 'Piloto', 'Kart', 'Tiempo', 'Diferencia']],
+    head: [['Pos', 'Piloto', 'Tiempo', 'Diferencia']],
     body: tableData,
     styles: { fontSize: 10, cellPadding: 3 },
     headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
       0: { halign: 'center', cellWidth: 15 },
-      2: { halign: 'center', cellWidth: 20 },
+      2: { halign: 'center', cellWidth: 30 },
       3: { halign: 'center', cellWidth: 30 },
-      4: { halign: 'center', cellWidth: 30 },
     },
   });
 
