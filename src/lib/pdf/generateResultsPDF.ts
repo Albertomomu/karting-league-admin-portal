@@ -87,7 +87,7 @@ export function generateResultsPDF(data: ResultsPDFData) {
 }
 
 /**
- * Genera un PDF combinado con los resultados de ambas carreras.
+ * Genera un PDF combinado con la clasificación conjunta (puntos C1 + C2 sumados).
  */
 export function generateCombinedResultsPDF(
   race1: ResultsPDFData,
@@ -99,7 +99,7 @@ export function generateCombinedResultsPDF(
   // Cabecera general
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('RESULTADOS', pageWidth / 2, 20, { align: 'center' });
+  doc.text('RESULTADOS COMBINADOS', pageWidth / 2, 20, { align: 'center' });
 
   doc.setFontSize(14);
   doc.text(race1.raceName, pageWidth / 2, 30, { align: 'center' });
@@ -108,83 +108,66 @@ export function generateCombinedResultsPDF(
   doc.setFont('helvetica', 'normal');
   doc.text(`${race1.leagueName} | ${race1.circuitName} | ${race1.date}`, pageWidth / 2, 38, { align: 'center' });
 
-  // Carrera I
-  doc.setFontSize(13);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`${race1.sessionName}`, 14, 50);
+  doc.setFontSize(9);
+  doc.setTextColor(100);
+  doc.text('Carrera I + Carrera II', pageWidth / 2, 45, { align: 'center' });
+  doc.setTextColor(0);
 
-  const table1Data = race1.entries.map((entry) => [
-    entry.position?.toString() || '-',
-    entry.pilot_name,
-    entry.best_lap || '-',
-    STATUS_LABELS[entry.status || 'classified'] || '-',
-    entry.points?.toString() || '-',
-  ]);
+  // Combinar puntos por piloto
+  const combined = new Map<string, { pilot_name: string; pts1: number; pts2: number }>();
 
-  autoTable(doc, {
-    startY: 55,
-    head: [['Pos', 'Piloto', 'Mejor Vuelta', 'Estado', 'Puntos']],
-    body: table1Data,
-    styles: { fontSize: 9, cellPadding: 2 },
-    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [245, 245, 245] },
-    columnStyles: {
-      0: { halign: 'center', cellWidth: 12 },
-      2: { halign: 'center', cellWidth: 28 },
-      3: { halign: 'center', cellWidth: 18 },
-      4: { halign: 'center', cellWidth: 18 },
-    },
-  });
-
-  // Carrera II
-  const afterTable1 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
-
-  // Nueva página si no cabe
-  if (afterTable1 > 180) {
-    doc.addPage();
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${race2.sessionName}`, 14, 20);
-
-    const table2StartY = 25;
-    addResultsTable(doc, race2, table2StartY);
-  } else {
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${race2.sessionName}`, 14, afterTable1);
-    addResultsTable(doc, race2, afterTable1 + 5);
+  for (const entry of race1.entries) {
+    combined.set(entry.pilot_name, {
+      pilot_name: entry.pilot_name,
+      pts1: entry.points ?? 0,
+      pts2: 0,
+    });
   }
 
-  // Pie
-  const finalY2 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
-  doc.setFontSize(8);
-  doc.setTextColor(150);
-  doc.text(`Generado: ${new Date().toLocaleString('es-ES')}`, pageWidth / 2, finalY2, { align: 'center' });
+  for (const entry of race2.entries) {
+    const existing = combined.get(entry.pilot_name);
+    if (existing) {
+      existing.pts2 = entry.points ?? 0;
+    } else {
+      combined.set(entry.pilot_name, {
+        pilot_name: entry.pilot_name,
+        pts1: 0,
+        pts2: entry.points ?? 0,
+      });
+    }
+  }
 
-  doc.save(`resultados_combinados_${race1.raceName.replace(/\s+/g, '_')}.pdf`);
-}
+  const sorted = Array.from(combined.values())
+    .sort((a, b) => (b.pts1 + b.pts2) - (a.pts1 + a.pts2));
 
-function addResultsTable(doc: jsPDF, data: ResultsPDFData, startY: number) {
-  const tableData = data.entries.map((entry) => [
-    entry.position?.toString() || '-',
+  const tableData = sorted.map((entry, i) => [
+    (i + 1).toString(),
     entry.pilot_name,
-    entry.best_lap || '-',
-    STATUS_LABELS[entry.status || 'classified'] || '-',
-    entry.points?.toString() || '-',
+    entry.pts1 > 0 ? entry.pts1.toString() : '-',
+    entry.pts2 > 0 ? entry.pts2.toString() : '-',
+    (entry.pts1 + entry.pts2).toString(),
   ]);
 
   autoTable(doc, {
-    startY,
-    head: [['Pos', 'Piloto', 'Mejor Vuelta', 'Estado', 'Puntos']],
+    startY: 52,
+    head: [['Pos', 'Piloto', 'Pts C1', 'Pts C2', 'Total']],
     body: tableData,
-    styles: { fontSize: 9, cellPadding: 2 },
-    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+    styles: { fontSize: 10, cellPadding: 3 },
+    headStyles: { fillColor: [108, 43, 217], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 12 },
-      2: { halign: 'center', cellWidth: 28 },
-      3: { halign: 'center', cellWidth: 18 },
-      4: { halign: 'center', cellWidth: 18 },
+      0: { halign: 'center', cellWidth: 14 },
+      2: { halign: 'center', cellWidth: 22 },
+      3: { halign: 'center', cellWidth: 22 },
+      4: { halign: 'center', cellWidth: 22, fontStyle: 'bold' },
     },
   });
+
+  // Pie
+  const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+  doc.setFontSize(8);
+  doc.setTextColor(150);
+  doc.text(`Generado: ${new Date().toLocaleString('es-ES')}`, pageWidth / 2, finalY, { align: 'center' });
+
+  doc.save(`resultados_combinados_${race1.raceName.replace(/\s+/g, '_')}.pdf`);
 }
