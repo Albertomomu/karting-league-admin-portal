@@ -24,8 +24,8 @@ export default function PDFsPage() {
   const [raceDetail, setRaceDetail] = useState<RaceWithCircuit | null>(null);
   const [leagueDetail, setLeagueDetail] = useState<League | null>(null);
 
-  const [sessionIds, setSessionIds] = useState<{ clasificacion: string; carrera1: string; carrera2: string }>({
-    clasificacion: '', carrera1: '', carrera2: '',
+  const [sessionIds, setSessionIds] = useState<{ clasificacion1: string; clasificacion2: string; carrera1: string; carrera2: string }>({
+    clasificacion1: '', clasificacion2: '', carrera1: '', carrera2: '',
   });
 
   const [generating, setGenerating] = useState('');
@@ -38,7 +38,8 @@ export default function PDFsPage() {
     supabase.from('session').select('id, name').then(({ data }) => {
       if (data) {
         setSessionIds({
-          clasificacion: data.find((s) => s.name === 'Clasificación')?.id || '',
+          clasificacion1: data.find((s) => s.name === 'Clasificación 1')?.id || '',
+          clasificacion2: data.find((s) => s.name === 'Clasificación 2')?.id || '',
           carrera1: data.find((s) => s.name === 'Carrera I')?.id || '',
           carrera2: data.find((s) => s.name === 'Carrera II')?.id || '',
         });
@@ -83,31 +84,59 @@ export default function PDFsPage() {
   });
 
   const handleClassificationPDF = async () => {
-    if (!selectedRace || !sessionIds.clasificacion) return;
+    if (!selectedRace || (!sessionIds.clasificacion1 && !sessionIds.clasificacion2)) return;
     setGenerating('clasificacion');
 
-    const { data } = await supabase
-      .from('race_result')
-      .select('race_position, best_lap, pilot:pilot_id (id, name, number)')
-      .eq('race_id', selectedRace)
-      .eq('session_id', sessionIds.clasificacion)
-      .order('race_position', { ascending: true })
-      .overrideTypes<ResultWithPilot[]>();
+    const fetchSession = async (sessionId: string) => {
+      if (!sessionId) return [];
+      const { data } = await supabase
+        .from('race_result')
+        .select('race_position, best_lap, pilot:pilot_id (id, name, number)')
+        .eq('race_id', selectedRace)
+        .eq('session_id', sessionId)
+        .overrideTypes<ResultWithPilot[]>();
+      return data || [];
+    };
 
-    const entries = (data || [])
-      .filter((r) => r.best_lap)
-      .map((r) => ({
-        position: r.race_position,
-        pilot_name: r.pilot?.name || '',
-        best_lap: r.best_lap || '',
-      }));
+    const [results1, results2] = await Promise.all([
+      fetchSession(sessionIds.clasificacion1),
+      fetchSession(sessionIds.clasificacion2),
+    ]);
+
+    // Compute best time per pilot across both tandas
+    const bestMap = new Map<string, { pilot_name: string; best_lap: string }>();
+    const parseMs = (t: string) => {
+      const [minSec, ms] = t.split('.');
+      const [min, sec] = minSec.split(':').map(Number);
+      return (min * 60 + sec) * 1000 + Number(ms);
+    };
+
+    for (const r of [...results1, ...results2]) {
+      if (!r.best_lap || !r.pilot) continue;
+      const key = (r.pilot as unknown as { id: string }).id;
+      const name = (r.pilot as unknown as { name: string }).name;
+      const existing = bestMap.get(key);
+      if (!existing || parseMs(r.best_lap) < parseMs(existing.best_lap)) {
+        bestMap.set(key, { pilot_name: name, best_lap: r.best_lap });
+      }
+    }
+
+    const entries = Array.from(bestMap.values())
+      .sort((a, b) => parseMs(a.best_lap) - parseMs(b.best_lap))
+      .map((e, i) => ({ position: i + 1, pilot_name: e.pilot_name, best_lap: e.best_lap }));
+
+    if (entries.length === 0) {
+      alert('No hay tiempos de clasificación registrados.');
+      setGenerating('');
+      return;
+    }
 
     generateClassificationPDF({ ...getRaceInfo(), entries });
     setGenerating('');
   };
 
   const handleGridPDF = async (session: 'carrera1' | 'carrera2') => {
-    const sessionId = sessionIds[session];
+    const sessionId = sessionIds[session as keyof typeof sessionIds];
     if (!selectedRace || !sessionId) return;
     setGenerating(session);
 
@@ -141,7 +170,7 @@ export default function PDFsPage() {
   };
 
   const handleResultsPDF = async (session: 'carrera1' | 'carrera2') => {
-    const sessionId = sessionIds[session];
+    const sessionId = sessionIds[session as keyof typeof sessionIds];
     if (!selectedRace || !sessionId) return;
     setGenerating(`results_${session}`);
 
