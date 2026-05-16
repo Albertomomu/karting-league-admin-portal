@@ -52,6 +52,7 @@ const navItems: NavItem[] = [
     icon: <FlagTriangleRightIcon size={20} />,
     children: [
       { name: 'Wildkarts', path: '/gestion-carrera/wildkarts' },
+      { name: 'Hoja de Pilotos', path: '/gestion-carrera/hoja-pilotos' },
       { name: 'Clasificación', path: '/gestion-carrera/clasificacion' },
       { name: 'Parrillas', path: '/gestion-carrera/parrillas' },
       { name: 'Resultados Carrera', path: '/gestion-carrera/resultados' },
