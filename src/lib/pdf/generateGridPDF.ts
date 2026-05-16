@@ -20,6 +20,7 @@ const CELL_H = 20;
 const CELL_W = 86;
 const CELL_GAP = 8;
 const BADGE_W = 20;
+const KART_BOX_W = 16;
 const ROW_GAP = 3;
 
 function badgeColor(pos: number, inverted: boolean): [number, number, number] {
@@ -66,9 +67,10 @@ function drawCell(
   doc.setLineWidth(0.3);
   doc.line(x + BADGE_W + 2, y + 3, x + BADGE_W + 2, y + CELL_H - 3);
 
-  // Nombre del piloto + tiempo
+  // Nombre del piloto + tiempo (área reducida por la caja KART de la derecha)
+  const kartBoxX = x + CELL_W - KART_BOX_W;
   const nameX = x + BADGE_W + 6;
-  const nameMaxW = CELL_W - BADGE_W - 8;
+  const nameMaxW = kartBoxX - nameX - 2;
   const hasTime = !!entry.best_lap;
 
   let name = entry.pilot_name;
@@ -88,7 +90,7 @@ function drawCell(
     doc.text(entry.best_lap!, nameX, nameY + 5);
   }
 
-  // Badge "POLE" para P1
+  // Badge "POLE" para P1 (anclado al borde derecho del área de nombre)
   if (entry.grid_position === 1) {
     doc.setFillColor(br, bg, bb);
     doc.setFontSize(6);
@@ -96,8 +98,8 @@ function drawCell(
     doc.setTextColor(255, 255, 255);
     const badgeLabel = 'POLE';
     const bw = doc.getTextWidth(badgeLabel) + 4;
-    doc.roundedRect(x + CELL_W - bw - 3, y + 3, bw, 6, 1, 1, 'F');
-    doc.text(badgeLabel, x + CELL_W - bw - 1, y + 7.5);
+    doc.roundedRect(kartBoxX - bw - 2, y + 3, bw, 6, 1, 1, 'F');
+    doc.text(badgeLabel, kartBoxX - bw, y + 7.5);
   }
 
   // Badge "INV" para posiciones invertidas
@@ -108,9 +110,19 @@ function drawCell(
     doc.setTextColor(255, 255, 255);
     const badgeLabel = 'INV';
     const bw = doc.getTextWidth(badgeLabel) + 4;
-    doc.roundedRect(x + CELL_W - bw - 3, y + 3, bw, 6, 1, 1, 'F');
-    doc.text(badgeLabel, x + CELL_W - bw - 1, y + 7.5);
+    doc.roundedRect(kartBoxX - bw - 2, y + 3, bw, 6, 1, 1, 'F');
+    doc.text(badgeLabel, kartBoxX - bw, y + 7.5);
   }
+
+  // Caja "KART" en blanco a la derecha para rellenar a mano
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.3);
+  doc.line(kartBoxX, y + 3, kartBoxX, y + CELL_H - 3);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6);
+  doc.setTextColor(150, 150, 150);
+  doc.text('KART', kartBoxX + KART_BOX_W / 2, y + 5, { align: 'center' });
 }
 
 export function generateGridPDF(data: GridPDFData) {
