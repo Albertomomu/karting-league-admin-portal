@@ -10,17 +10,24 @@ type PilotsTestsData = {
   extraEmptyRows?: number;
 };
 
-async function loadLogoDataUrl(): Promise<string | null> {
+async function loadLogo(): Promise<{ dataUrl: string; width: number; height: number } | null> {
   try {
     const res = await fetch('/images/logo/logo.png');
     if (!res.ok) return null;
     const blob = await res.blob();
-    return await new Promise<string>((resolve, reject) => {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
+    const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+    return { dataUrl, width, height };
   } catch {
     return null;
   }
@@ -36,31 +43,49 @@ export async function generatePilotsTestsPDF(data: PilotsTestsData) {
   const doc = new jsPDF();
   const pageW = doc.internal.pageSize.getWidth();
 
-  const logo = await loadLogoDataUrl();
+  const logo = await loadLogo();
   if (logo) {
-    const logoW = 28;
-    const logoH = 22;
-    doc.addImage(logo, 'PNG', pageW - logoW - 15, 14, logoW, logoH);
+    // Mantener proporción real del logo; encajar dentro de 32x26 mm como máximo
+    const maxW = 32;
+    const maxH = 26;
+    const ratio = logo.width / logo.height;
+    let logoW = maxW;
+    let logoH = maxW / ratio;
+    if (logoH > maxH) {
+      logoH = maxH;
+      logoW = maxH * ratio;
+    }
+    doc.addImage(logo.dataUrl, 'PNG', pageW - logoW - 15, 14, logoW, logoH, undefined, 'FAST');
   }
 
-  // Título: PILOTOS {race name} ({date}) — "PILOTOS {race}" en grande subrayado, fecha más pequeña
+  // Título en dos líneas: "PILOTOS {race}" grande y subrayado, fecha debajo más pequeña
   const titleY = 55;
   const titleMain = `PILOTOS ${data.raceName.toUpperCase()}`;
-  const dateLabel = ` (${formatDate(data.date)})`;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(28);
+  doc.setFontSize(24);
   doc.setTextColor(0, 0, 0);
+
+  // Ajustar tamaño si no cabe a 24pt (raceName muy largo)
+  const maxTitleWidth = pageW - 30; // 15mm margen izq + 15mm derecho
+  let fontSize = 24;
+  while (doc.getTextWidth(titleMain) > maxTitleWidth && fontSize > 14) {
+    fontSize -= 1;
+    doc.setFontSize(fontSize);
+  }
+
   doc.text(titleMain, 15, titleY);
   const mainW = doc.getTextWidth(titleMain);
 
   // Subrayado del título principal
-  doc.setLineWidth(1.2);
+  doc.setLineWidth(1);
   doc.line(15, titleY + 2.5, 15 + mainW, titleY + 2.5);
 
-  // Fecha al lado, más pequeña, sin subrayar
-  doc.setFontSize(15);
-  doc.text(dateLabel, 15 + mainW + 1, titleY);
+  // Fecha en línea siguiente
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(13);
+  doc.setTextColor(80, 80, 80);
+  doc.text(`Fecha: ${formatDate(data.date)}`, 15, titleY + 11);
 
   // Tabla
   const bodyRows: string[][] = [
@@ -69,7 +94,7 @@ export async function generatePilotsTestsPDF(data: PilotsTestsData) {
   ];
 
   autoTable(doc, {
-    startY: titleY + 15,
+    startY: titleY + 18,
     head: [['NOMBRE', 'ASIST', 'PESO', 'LASTRE', 'KART\nQualys', 'KART\nCarreras']],
     body: bodyRows,
     theme: 'grid',
