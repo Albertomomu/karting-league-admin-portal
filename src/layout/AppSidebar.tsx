@@ -53,6 +53,7 @@ const navItems: NavItem[] = [
     children: [
       { name: 'Wildkarts', path: '/gestion-carrera/wildkarts' },
       { name: 'Hoja de Pilotos', path: '/gestion-carrera/hoja-pilotos' },
+      { name: 'Hoja de Recepción', path: '/gestion-carrera/hoja-recepcion' },
       { name: 'Clasificación', path: '/gestion-carrera/clasificacion' },
       { name: 'Parrillas', path: '/gestion-carrera/parrillas' },
       { name: 'Resultados Carrera', path: '/gestion-carrera/resultados' },
