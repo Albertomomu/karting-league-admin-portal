@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { supabase, Season, League, Race, Pilot } from '@/lib/supabase';
 import { generatePilotsTestsPDF } from '@/lib/pdf/generatePilotsTestsPDF';
 
-type PilotTeamSeasonEntry = { pilot: Pilot };
+type PilotTeamSeasonEntry = { is_wildkart: boolean; pilot: Pilot };
+
+type PilotWithFlag = Pilot & { is_wildkart: boolean };
 
 export default function HojaPilotosPage() {
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -14,7 +16,7 @@ export default function HojaPilotosPage() {
   const [selectedLeague, setSelectedLeague] = useState('');
   const [selectedRace, setSelectedRace] = useState('');
 
-  const [pilots, setPilots] = useState<Pilot[]>([]);
+  const [pilots, setPilots] = useState<PilotWithFlag[]>([]);
   const [selectedPilotIds, setSelectedPilotIds] = useState<Set<string>>(new Set());
   const [extraRows, setExtraRows] = useState(3);
   const [loading, setLoading] = useState(false);
@@ -35,15 +37,21 @@ export default function HojaPilotosPage() {
     setLoading(true);
     supabase
       .from('pilot_team_season')
-      .select('pilot:pilot_id (id, name, number, avatar_url)')
+      .select('is_wildkart, pilot:pilot_id (id, name, number, avatar_url)')
       .eq('league_id', selectedLeague)
-      .eq('is_wildkart', false)
       .overrideTypes<PilotTeamSeasonEntry[]>()
       .then(({ data }) => {
-        const list = (data || []).map((pts) => pts.pilot).filter(Boolean);
-        list.sort((a, b) => a.name.localeCompare(b.name));
+        const list: PilotWithFlag[] = (data || [])
+          .filter((pts) => pts.pilot)
+          .map((pts) => ({ ...pts.pilot, is_wildkart: pts.is_wildkart }));
+        // Pilotos normales primero, wildkarts al final; alfabético dentro de cada grupo
+        list.sort((a, b) => {
+          if (a.is_wildkart !== b.is_wildkart) return a.is_wildkart ? 1 : -1;
+          return a.name.localeCompare(b.name);
+        });
         setPilots(list);
-        setSelectedPilotIds(new Set(list.map((p) => p.id)));
+        // Por defecto solo se marcan los pilotos regulares; los wildkarts el usuario los selecciona cuando corren
+        setSelectedPilotIds(new Set(list.filter((p) => !p.is_wildkart).map((p) => p.id)));
         setLoading(false);
       });
   }, [selectedLeague]);
@@ -190,9 +198,14 @@ export default function HojaPilotosPage() {
                     onChange={() => togglePilot(p.id)}
                     className="h-4 w-4"
                   />
-                  <span className="text-sm text-gray-800 dark:text-white truncate">
+                  <span className="text-sm text-gray-800 dark:text-white truncate flex-1">
                     {p.name}
                   </span>
+                  {p.is_wildkart && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                      WK
+                    </span>
+                  )}
                 </label>
               );
             })}
