@@ -4,6 +4,7 @@ type GridEntry = {
   grid_position: number;
   pilot_name: string;
   best_lap?: string;
+  kart_number?: number | null;
 };
 
 type GridPDFData = {
@@ -114,7 +115,7 @@ function drawCell(
     doc.text(badgeLabel, kartBoxX - bw, y + 7.5);
   }
 
-  // Caja "KART" en blanco a la derecha para rellenar a mano
+  // Caja "KART" a la derecha — muestra el número si está, si no queda en blanco
   doc.setDrawColor(220, 220, 220);
   doc.setLineWidth(0.3);
   doc.line(kartBoxX, y + 3, kartBoxX, y + CELL_H - 3);
@@ -123,6 +124,18 @@ function drawCell(
   doc.setFontSize(6);
   doc.setTextColor(150, 150, 150);
   doc.text('KART', kartBoxX + KART_BOX_W / 2, y + 5, { align: 'center' });
+
+  if (entry.kart_number != null) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(30, 30, 30);
+    doc.text(
+      String(entry.kart_number),
+      kartBoxX + KART_BOX_W / 2,
+      y + CELL_H / 2 + 4,
+      { align: 'center' },
+    );
+  }
 }
 
 export function generateGridPDF(data: GridPDFData) {

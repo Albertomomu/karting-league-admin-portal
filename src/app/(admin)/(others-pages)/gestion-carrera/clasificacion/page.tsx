@@ -13,6 +13,7 @@ type QualifyingRow = {
   pilot: Pilot;
   best_lap: string;
   position: number | null;
+  kart_number: string;
 };
 
 function sortRows(rowsToSort: QualifyingRow[]) {
@@ -40,7 +41,7 @@ function computeCombinedBestTimes(rows1: QualifyingRow[], rows2: QualifyingRow[]
     } else {
       best = t1 || t2;
     }
-    return { pilot, best_lap: best, position: null };
+    return { pilot, best_lap: best, position: null, kart_number: '' };
   });
 
   sortRows(combined);
@@ -56,13 +57,14 @@ type QualifyingTableProps = {
   title: string;
   rows: QualifyingRow[];
   onTimeChange: (pilotId: string, value: string) => void;
+  onKartChange?: (pilotId: string, value: string) => void;
   onSort: () => void;
   readonly?: boolean;
   showTandaColumn?: boolean;
   rows1?: QualifyingRow[];
 };
 
-function QualifyingTable({ title, rows, onTimeChange, onSort, readonly, showTandaColumn, rows1 }: QualifyingTableProps) {
+function QualifyingTable({ title, rows, onTimeChange, onKartChange, onSort, readonly, showTandaColumn, rows1 }: QualifyingTableProps) {
   const firstTime = rows.find((r) => r.best_lap)?.best_lap;
   const firstTimeMs = firstTime ? parseTimeToMs(firstTime) : 0;
 
@@ -85,6 +87,7 @@ function QualifyingTable({ title, rows, onTimeChange, onSort, readonly, showTand
             <tr>
               <th className="p-3 w-12">Pos</th>
               <th className="p-3">Piloto</th>
+              <th className="p-3 w-20">Kart</th>
               <th className="p-3 w-32">Tiempo</th>
               <th className="p-3 w-24">Dif</th>
               {showTandaColumn && <th className="p-3 w-20">Tanda</th>}
@@ -140,6 +143,22 @@ function QualifyingTable({ title, rows, onTimeChange, onSort, readonly, showTand
                       )}
                       <span className="truncate max-w-[120px]">{row.pilot.name}</span>
                     </div>
+                  </td>
+                  <td className="p-3">
+                    {readonly ? (
+                      <span className="text-gray-800 dark:text-white font-mono">
+                        {row.kart_number || '-'}
+                      </span>
+                    ) : (
+                      <input
+                        type="number"
+                        min="0"
+                        value={row.kart_number}
+                        onChange={(e) => onKartChange?.(row.pilot.id, e.target.value)}
+                        placeholder="#"
+                        className="w-16 border rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-800 dark:text-white font-mono text-sm border-gray-300 dark:border-gray-600"
+                      />
+                    )}
                   </td>
                   <td className="p-3">
                     {readonly ? (
@@ -253,26 +272,35 @@ export default function ClasificacionPage() {
       const [{ data: results1 }, { data: results2 }] = await Promise.all([
         supabase
           .from('race_result')
-          .select('pilot_id, best_lap, race_position')
+          .select('pilot_id, best_lap, race_position, kart_number')
           .eq('race_id', selectedRace)
           .eq('session_id', q1SessionId)
           .overrideTypes<RaceResult[]>(),
         supabase
           .from('race_result')
-          .select('pilot_id, best_lap, race_position')
+          .select('pilot_id, best_lap, race_position, kart_number')
           .eq('race_id', selectedRace)
           .eq('session_id', q2SessionId)
           .overrideTypes<RaceResult[]>(),
       ]);
 
       const buildRows = (results: RaceResult[] | null): QualifyingRow[] => {
-        const map = new Map<string, { best_lap: string; position: number | null }>();
+        const map = new Map<string, { best_lap: string; position: number | null; kart_number: string }>();
         (results || []).forEach((r) => {
-          map.set(r.pilot_id!, { best_lap: r.best_lap || '', position: r.race_position });
+          map.set(r.pilot_id!, {
+            best_lap: r.best_lap || '',
+            position: r.race_position,
+            kart_number: r.kart_number != null ? String(r.kart_number) : '',
+          });
         });
         const rows: QualifyingRow[] = pilots.map((pilot) => {
           const existing = map.get(pilot.id);
-          return { pilot, best_lap: existing?.best_lap || '', position: existing?.position || null };
+          return {
+            pilot,
+            best_lap: existing?.best_lap || '',
+            position: existing?.position || null,
+            kart_number: existing?.kart_number || '',
+          };
         });
         sortRows(rows);
         return rows;
@@ -295,6 +323,14 @@ export default function ClasificacionPage() {
 
   const handleTimeChange2 = (pilotId: string, value: string) => {
     setRows2((prev) => prev.map((r) => r.pilot.id === pilotId ? { ...r, best_lap: value } : r));
+  };
+
+  const handleKartChange1 = (pilotId: string, value: string) => {
+    setRows1((prev) => prev.map((r) => r.pilot.id === pilotId ? { ...r, kart_number: value } : r));
+  };
+
+  const handleKartChange2 = (pilotId: string, value: string) => {
+    setRows2((prev) => prev.map((r) => r.pilot.id === pilotId ? { ...r, kart_number: value } : r));
   };
 
   const handleSort1 = () => {
@@ -334,6 +370,7 @@ export default function ClasificacionPage() {
             race_position: row.position,
             best_lap: row.best_lap || null,
             points: null as number | null,
+            kart_number: row.kart_number === '' ? null : Number(row.kart_number),
           };
 
           if (existing) {
@@ -464,12 +501,14 @@ export default function ClasificacionPage() {
               title="Tanda 1"
               rows={rows1}
               onTimeChange={handleTimeChange1}
+              onKartChange={handleKartChange1}
               onSort={handleSort1}
             />
             <QualifyingTable
               title="Tanda 2"
               rows={rows2}
               onTimeChange={handleTimeChange2}
+              onKartChange={handleKartChange2}
               onSort={handleSort2}
             />
           </div>

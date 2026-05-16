@@ -91,7 +91,7 @@ export default function PDFsPage() {
       if (!sessionId) return [];
       const { data } = await supabase
         .from('race_result')
-        .select('race_position, best_lap, pilot:pilot_id (id, name, number)')
+        .select('race_position, best_lap, kart_number, pilot:pilot_id (id, name, number)')
         .eq('race_id', selectedRace)
         .eq('session_id', sessionId)
         .overrideTypes<ResultWithPilot[]>();
@@ -103,8 +103,8 @@ export default function PDFsPage() {
       fetchSession(sessionIds.clasificacion2),
     ]);
 
-    // Compute best time per pilot across both tandas
-    const bestMap = new Map<string, { pilot_name: string; best_lap: string }>();
+    // Compute best time per pilot across both tandas + kart usado en esa tanda
+    const bestMap = new Map<string, { pilot_name: string; best_lap: string; kart_number: number | null }>();
     const parseMs = (t: string) => {
       const [minSec, ms] = t.split('.');
       const [min, sec] = minSec.split(':').map(Number);
@@ -117,13 +117,13 @@ export default function PDFsPage() {
       const name = (r.pilot as unknown as { name: string }).name;
       const existing = bestMap.get(key);
       if (!existing || parseMs(r.best_lap) < parseMs(existing.best_lap)) {
-        bestMap.set(key, { pilot_name: name, best_lap: r.best_lap });
+        bestMap.set(key, { pilot_name: name, best_lap: r.best_lap, kart_number: r.kart_number ?? null });
       }
     }
 
     const entries = Array.from(bestMap.values())
       .sort((a, b) => parseMs(a.best_lap) - parseMs(b.best_lap))
-      .map((e, i) => ({ position: i + 1, pilot_name: e.pilot_name, best_lap: e.best_lap }));
+      .map((e, i) => ({ position: i + 1, pilot_name: e.pilot_name, best_lap: e.best_lap, kart_number: e.kart_number }));
 
     if (entries.length === 0) {
       alert('No hay tiempos de clasificación registrados.');
@@ -140,8 +140,8 @@ export default function PDFsPage() {
     if (!selectedRace || !sessionId) return;
     setGenerating(session);
 
-    // Fetch grid + tiempos de ambas clasificaciones en paralelo
-    const [{ data: gridData }, { data: q1Data }, { data: q2Data }] = await Promise.all([
+    // Fetch grid + tiempos de ambas clasificaciones + kart de la sesión de la carrera
+    const [{ data: gridData }, { data: q1Data }, { data: q2Data }, { data: raceSessionData }] = await Promise.all([
       supabase
         .from('race_grid')
         .select('grid_position, pilot:pilot_id (id, name, number)')
@@ -150,11 +150,12 @@ export default function PDFsPage() {
         .order('grid_position', { ascending: true })
         .overrideTypes<GridWithPilot[]>(),
       sessionIds.clasificacion1
-        ? supabase.from('race_result').select('pilot_id, best_lap').eq('race_id', selectedRace).eq('session_id', sessionIds.clasificacion1).overrideTypes<RaceResult[]>()
+        ? supabase.from('race_result').select('pilot_id, best_lap, kart_number').eq('race_id', selectedRace).eq('session_id', sessionIds.clasificacion1).overrideTypes<RaceResult[]>()
         : Promise.resolve({ data: [] as RaceResult[] }),
       sessionIds.clasificacion2
-        ? supabase.from('race_result').select('pilot_id, best_lap').eq('race_id', selectedRace).eq('session_id', sessionIds.clasificacion2).overrideTypes<RaceResult[]>()
+        ? supabase.from('race_result').select('pilot_id, best_lap, kart_number').eq('race_id', selectedRace).eq('session_id', sessionIds.clasificacion2).overrideTypes<RaceResult[]>()
         : Promise.resolve({ data: [] as RaceResult[] }),
+      supabase.from('race_result').select('pilot_id, kart_number').eq('race_id', selectedRace).eq('session_id', sessionId).overrideTypes<RaceResult[]>(),
     ]);
 
     if (!gridData || gridData.length === 0) {
@@ -163,26 +164,38 @@ export default function PDFsPage() {
       return;
     }
 
-    // Mejor tiempo por piloto entre ambas tandas
+    // Mejor tiempo por piloto entre ambas tandas + kart de esa tanda como fallback
     const parseMs = (t: string) => {
       const [minSec, ms] = t.split('.');
       const [min, sec] = minSec.split(':').map(Number);
       return (min * 60 + sec) * 1000 + Number(ms);
     };
-    const bestLapMap = new Map<string, string>();
+    const bestLapMap = new Map<string, { best_lap: string; kart_number: number | null }>();
     for (const r of [...(q1Data || []), ...(q2Data || [])]) {
       if (!r.pilot_id || !r.best_lap) continue;
       const existing = bestLapMap.get(r.pilot_id);
-      if (!existing || parseMs(r.best_lap) < parseMs(existing)) {
-        bestLapMap.set(r.pilot_id, r.best_lap);
+      if (!existing || parseMs(r.best_lap) < parseMs(existing.best_lap)) {
+        bestLapMap.set(r.pilot_id, { best_lap: r.best_lap, kart_number: r.kart_number ?? null });
       }
     }
 
-    const entries = gridData.map((g) => ({
-      grid_position: g.grid_position,
-      pilot_name: g.pilot?.name || '',
-      best_lap: bestLapMap.get((g.pilot as unknown as { id: string })?.id || '') || undefined,
-    }));
+    // Kart de la propia sesión de carrera (prioritario sobre el de clasif)
+    const raceKartMap = new Map<string, number | null>();
+    for (const r of raceSessionData || []) {
+      if (r.pilot_id) raceKartMap.set(r.pilot_id, r.kart_number ?? null);
+    }
+
+    const entries = gridData.map((g) => {
+      const pilotId = (g.pilot as unknown as { id: string })?.id || '';
+      const bestEntry = bestLapMap.get(pilotId);
+      const raceKart = raceKartMap.get(pilotId);
+      return {
+        grid_position: g.grid_position,
+        pilot_name: g.pilot?.name || '',
+        best_lap: bestEntry?.best_lap,
+        kart_number: raceKart != null ? raceKart : (bestEntry?.kart_number ?? null),
+      };
+    });
 
     const sessionName = session === 'carrera1' ? 'CARRERA I' : 'CARRERA II';
     generateGridPDF({
@@ -201,7 +214,7 @@ export default function PDFsPage() {
 
     const { data } = await supabase
       .from('race_result')
-      .select('race_position, best_lap, points, laps_completed, status, observations, pilot:pilot_id (id, name, number)')
+      .select('race_position, best_lap, points, laps_completed, status, observations, kart_number, pilot:pilot_id (id, name, number)')
       .eq('race_id', selectedRace)
       .eq('session_id', sessionId)
       .order('race_position', { ascending: true })
@@ -214,6 +227,7 @@ export default function PDFsPage() {
       laps_completed: r.laps_completed,
       status: r.status,
       points: r.points,
+      kart_number: r.kart_number ?? null,
     }));
 
     if (entries.length === 0) {
@@ -238,7 +252,7 @@ export default function PDFsPage() {
     const fetchResults = async (sessionId: string) => {
       const { data } = await supabase
         .from('race_result')
-        .select('race_position, best_lap, points, laps_completed, status, observations, pilot:pilot_id (id, name, number)')
+        .select('race_position, best_lap, points, laps_completed, status, observations, kart_number, pilot:pilot_id (id, name, number)')
         .eq('race_id', selectedRace)
         .eq('session_id', sessionId)
         .order('race_position', { ascending: true })
@@ -251,6 +265,7 @@ export default function PDFsPage() {
         laps_completed: r.laps_completed,
         status: r.status,
         points: r.points,
+        kart_number: r.kart_number ?? null,
       }));
     };
 

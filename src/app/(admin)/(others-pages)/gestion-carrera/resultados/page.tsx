@@ -12,6 +12,7 @@ type EditableResult = {
   status: string;
   observations: string;
   points: number | '';
+  kart_number: number | '';
 };
 
 type PilotTeamSeason = {
@@ -112,7 +113,7 @@ export default function ResultadosCarreraPage() {
     const fetchExistingResults = async () => {
       const { data } = await supabase
         .from('race_result')
-        .select('id, pilot:pilot_id ( id, name, number, avatar_url ), race_position, best_lap, points, laps_completed, status, observations')
+        .select('id, pilot:pilot_id ( id, name, number, avatar_url ), race_position, best_lap, points, laps_completed, status, observations, kart_number')
         .eq('race_id', selectedRace)
         .eq('session_id', selectedSession)
         .overrideTypes<RaceResult[]>();
@@ -128,6 +129,7 @@ export default function ResultadosCarreraPage() {
             status: r.status || 'classified',
             observations: r.observations ?? '',
             points: r.points ?? '',
+            kart_number: r.kart_number ?? '',
           });
         }
       });
@@ -141,6 +143,7 @@ export default function ResultadosCarreraPage() {
           status: 'classified',
           observations: '',
           points: '',
+          kart_number: '',
         }
       );
       setResults(editableResults);
@@ -172,7 +175,8 @@ export default function ResultadosCarreraPage() {
           res.points === '' &&
           res.laps_completed === '' &&
           res.status === 'classified' &&
-          res.observations === ''
+          res.observations === '' &&
+          res.kart_number === ''
         ) {
           continue;
         }
@@ -194,6 +198,7 @@ export default function ResultadosCarreraPage() {
           laps_completed: res.laps_completed === '' ? null : Number(res.laps_completed),
           status: res.status || 'classified',
           observations: res.observations || null,
+          kart_number: res.kart_number === '' ? null : Number(res.kart_number),
         };
 
         if (existing) {
@@ -306,6 +311,7 @@ export default function ResultadosCarreraPage() {
               <thead className="text-left text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                 <tr>
                   <th className="p-3">Piloto</th>
+                  <th className="p-3 w-16">Kart</th>
                   <th className="p-3 w-16">Pos</th>
                   <th className="p-3 w-28">Mejor Vuelta</th>
                   <th className="p-3 w-20">Vueltas</th>
@@ -339,6 +345,16 @@ export default function ResultadosCarreraPage() {
                         </div>
                       )}
                       <span>{res.pilot.name}</span>
+                    </td>
+                    <td className="p-3">
+                      <input
+                        type="number"
+                        min="0"
+                        className="w-14 border rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-800 dark:text-white"
+                        value={res.kart_number}
+                        onChange={(e) => handleChange(idx, 'kart_number', e.target.value)}
+                        placeholder="#"
+                      />
                     </td>
                     <td className="p-3">
                       <input

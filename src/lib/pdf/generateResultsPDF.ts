@@ -8,6 +8,7 @@ type ResultEntry = {
   laps_completed: number | null;
   status: string | null;
   points: number | null;
+  kart_number: number | null;
 };
 
 type ResultsPDFData = {
@@ -46,6 +47,7 @@ export function generateResultsPDF(data: ResultsPDFData) {
   const tableData = data.entries.map((entry) => [
     entry.position?.toString() || '-',
     entry.pilot_name,
+    entry.kart_number != null ? entry.kart_number.toString() : '-',
     entry.best_lap || '-',
     entry.laps_completed?.toString() || '-',
     STATUS_LABELS[entry.status || 'classified'] || entry.status || '-',
@@ -54,21 +56,22 @@ export function generateResultsPDF(data: ResultsPDFData) {
 
   autoTable(doc, {
     startY: 45,
-    head: [['Pos', 'Piloto', 'Mejor Vuelta', 'Vueltas', 'Estado', 'Puntos']],
+    head: [['Pos', 'Piloto', 'Kart', 'Mejor Vuelta', 'Vueltas', 'Estado', 'Puntos']],
     body: tableData,
     styles: { fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
       0: { halign: 'center', cellWidth: 12 },
-      2: { halign: 'center', cellWidth: 28 },
-      3: { halign: 'center', cellWidth: 18 },
+      2: { halign: 'center', cellWidth: 16 },
+      3: { halign: 'center', cellWidth: 28 },
       4: { halign: 'center', cellWidth: 18 },
       5: { halign: 'center', cellWidth: 18 },
+      6: { halign: 'center', cellWidth: 18 },
     },
     didParseCell: (data) => {
       // Colorear filas según status
-      if (data.section === 'body' && data.column.index === 4) {
+      if (data.section === 'body' && data.column.index === 5) {
         const val = data.cell.raw as string;
         if (val === 'DNF') data.cell.styles.textColor = [220, 50, 50];
         if (val === 'DSQ') data.cell.styles.textColor = [100, 100, 100];
@@ -114,13 +117,21 @@ export function generateCombinedResultsPDF(
   doc.setTextColor(0);
 
   // Combinar puntos por piloto
-  const combined = new Map<string, { pilot_name: string; pts1: number; pts2: number }>();
+  const combined = new Map<string, {
+    pilot_name: string;
+    pts1: number;
+    pts2: number;
+    kart1: number | null;
+    kart2: number | null;
+  }>();
 
   for (const entry of race1.entries) {
     combined.set(entry.pilot_name, {
       pilot_name: entry.pilot_name,
       pts1: entry.points ?? 0,
       pts2: 0,
+      kart1: entry.kart_number ?? null,
+      kart2: null,
     });
   }
 
@@ -128,11 +139,14 @@ export function generateCombinedResultsPDF(
     const existing = combined.get(entry.pilot_name);
     if (existing) {
       existing.pts2 = entry.points ?? 0;
+      existing.kart2 = entry.kart_number ?? null;
     } else {
       combined.set(entry.pilot_name, {
         pilot_name: entry.pilot_name,
         pts1: 0,
         pts2: entry.points ?? 0,
+        kart1: null,
+        kart2: entry.kart_number ?? null,
       });
     }
   }
@@ -143,6 +157,8 @@ export function generateCombinedResultsPDF(
   const tableData = sorted.map((entry, i) => [
     (i + 1).toString(),
     entry.pilot_name,
+    entry.kart1 != null ? entry.kart1.toString() : '-',
+    entry.kart2 != null ? entry.kart2.toString() : '-',
     entry.pts1 > 0 ? entry.pts1.toString() : '-',
     entry.pts2 > 0 ? entry.pts2.toString() : '-',
     (entry.pts1 + entry.pts2).toString(),
@@ -150,16 +166,18 @@ export function generateCombinedResultsPDF(
 
   autoTable(doc, {
     startY: 52,
-    head: [['Pos', 'Piloto', 'Pts C1', 'Pts C2', 'Total']],
+    head: [['Pos', 'Piloto', 'Kart C1', 'Kart C2', 'Pts C1', 'Pts C2', 'Total']],
     body: tableData,
     styles: { fontSize: 10, cellPadding: 3 },
     headStyles: { fillColor: [108, 43, 217], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
       0: { halign: 'center', cellWidth: 14 },
-      2: { halign: 'center', cellWidth: 22 },
-      3: { halign: 'center', cellWidth: 22 },
-      4: { halign: 'center', cellWidth: 22, fontStyle: 'bold' },
+      2: { halign: 'center', cellWidth: 18 },
+      3: { halign: 'center', cellWidth: 18 },
+      4: { halign: 'center', cellWidth: 18 },
+      5: { halign: 'center', cellWidth: 18 },
+      6: { halign: 'center', cellWidth: 20, fontStyle: 'bold' },
     },
   });
 

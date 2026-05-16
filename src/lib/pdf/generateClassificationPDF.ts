@@ -6,6 +6,7 @@ type ClassificationEntry = {
   position: number | null;
   pilot_name: string;
   best_lap: string;
+  kart_number: number | null;
 };
 
 type ClassificationPDFData = {
@@ -44,6 +45,7 @@ export function generateClassificationPDF(data: ClassificationPDFData) {
     return [
       entry.position?.toString() || '-',
       entry.pilot_name,
+      entry.kart_number != null ? entry.kart_number.toString() : '-',
       entry.best_lap || 'DNS',
       gap,
     ];
@@ -51,15 +53,16 @@ export function generateClassificationPDF(data: ClassificationPDFData) {
 
   autoTable(doc, {
     startY: 45,
-    head: [['Pos', 'Piloto', 'Tiempo', 'Diferencia']],
+    head: [['Pos', 'Piloto', 'Kart', 'Tiempo', 'Diferencia']],
     body: tableData,
     styles: { fontSize: 10, cellPadding: 3 },
     headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
       0: { halign: 'center', cellWidth: 15 },
-      2: { halign: 'center', cellWidth: 30 },
+      2: { halign: 'center', cellWidth: 18 },
       3: { halign: 'center', cellWidth: 30 },
+      4: { halign: 'center', cellWidth: 30 },
     },
   });
 

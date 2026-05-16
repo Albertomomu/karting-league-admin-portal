@@ -89,6 +89,7 @@ export type RaceResult = {
   laps_completed: number | null; // integer nullable
   observations: string | null;  // text nullable (DNF, DSQ, DNS, texto libre)
   status: string | null;        // text DEFAULT 'classified' ('classified'|'dnf'|'dsq'|'dns')
+  kart_number: number | null;   // integer nullable — physical kart number assigned in this session
   created_at: string | null;    // timestamp with time zone DEFAULT now()
   pilot?: Pilot;
   race?: Race;
