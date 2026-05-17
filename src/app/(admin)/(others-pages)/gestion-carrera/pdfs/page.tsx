@@ -140,8 +140,8 @@ export default function PDFsPage() {
     if (!selectedRace || !sessionId) return;
     setGenerating(session);
 
-    // Fetch grid + tiempos de ambas clasificaciones + kart de la sesión de la carrera
-    const [{ data: gridData }, { data: q1Data }, { data: q2Data }, { data: raceSessionData }] = await Promise.all([
+    // Fetch grid + tiempos de ambas clasificaciones (para mostrar mejor vuelta)
+    const [{ data: gridData }, { data: q1Data }, { data: q2Data }] = await Promise.all([
       supabase
         .from('race_grid')
         .select('grid_position, pilot:pilot_id (id, name, number)')
@@ -150,12 +150,11 @@ export default function PDFsPage() {
         .order('grid_position', { ascending: true })
         .overrideTypes<GridWithPilot[]>(),
       sessionIds.clasificacion1
-        ? supabase.from('race_result').select('pilot_id, best_lap, kart_number').eq('race_id', selectedRace).eq('session_id', sessionIds.clasificacion1).overrideTypes<RaceResult[]>()
+        ? supabase.from('race_result').select('pilot_id, best_lap').eq('race_id', selectedRace).eq('session_id', sessionIds.clasificacion1).overrideTypes<RaceResult[]>()
         : Promise.resolve({ data: [] as RaceResult[] }),
       sessionIds.clasificacion2
-        ? supabase.from('race_result').select('pilot_id, best_lap, kart_number').eq('race_id', selectedRace).eq('session_id', sessionIds.clasificacion2).overrideTypes<RaceResult[]>()
+        ? supabase.from('race_result').select('pilot_id, best_lap').eq('race_id', selectedRace).eq('session_id', sessionIds.clasificacion2).overrideTypes<RaceResult[]>()
         : Promise.resolve({ data: [] as RaceResult[] }),
-      supabase.from('race_result').select('pilot_id, kart_number').eq('race_id', selectedRace).eq('session_id', sessionId).overrideTypes<RaceResult[]>(),
     ]);
 
     if (!gridData || gridData.length === 0) {
@@ -164,36 +163,30 @@ export default function PDFsPage() {
       return;
     }
 
-    // Mejor tiempo por piloto entre ambas tandas + kart de esa tanda como fallback
+    // Mejor tiempo por piloto entre ambas tandas
     const parseMs = (t: string) => {
       const [minSec, ms] = t.split('.');
       const [min, sec] = minSec.split(':').map(Number);
       return (min * 60 + sec) * 1000 + Number(ms);
     };
-    const bestLapMap = new Map<string, { best_lap: string; kart_number: number | null }>();
+    const bestLapMap = new Map<string, string>();
     for (const r of [...(q1Data || []), ...(q2Data || [])]) {
       if (!r.pilot_id || !r.best_lap) continue;
       const existing = bestLapMap.get(r.pilot_id);
-      if (!existing || parseMs(r.best_lap) < parseMs(existing.best_lap)) {
-        bestLapMap.set(r.pilot_id, { best_lap: r.best_lap, kart_number: r.kart_number ?? null });
+      if (!existing || parseMs(r.best_lap) < parseMs(existing)) {
+        bestLapMap.set(r.pilot_id, r.best_lap);
       }
     }
 
-    // Kart de la propia sesión de carrera (prioritario sobre el de clasif)
-    const raceKartMap = new Map<string, number | null>();
-    for (const r of raceSessionData || []) {
-      if (r.pilot_id) raceKartMap.set(r.pilot_id, r.kart_number ?? null);
-    }
-
+    // El kart de la parrilla se rellena a mano el día de la carrera — no se autocompleta
+    // desde la cuali (los karts se reasignan) ni desde la sesión de carrera (aún no corrida).
     const entries = gridData.map((g) => {
       const pilotId = (g.pilot as unknown as { id: string })?.id || '';
-      const bestEntry = bestLapMap.get(pilotId);
-      const raceKart = raceKartMap.get(pilotId);
       return {
         grid_position: g.grid_position,
         pilot_name: g.pilot?.name || '',
-        best_lap: bestEntry?.best_lap,
-        kart_number: raceKart != null ? raceKart : (bestEntry?.kart_number ?? null),
+        best_lap: bestLapMap.get(pilotId),
+        kart_number: null,
       };
     });
 
